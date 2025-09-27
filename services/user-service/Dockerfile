@@ -1,51 +1,20 @@
-# Multi-stage build for user-service
-FROM node:18-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
+FROM node:20-alpine AS builder
 WORKDIR /app
-
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
-
-# Development stage
-FROM base AS development
-WORKDIR /app
-
-COPY package.json package-lock.json* ./
-RUN npm install
-
-COPY . .
-EXPOSE 3002
-
-CMD ["npm", "run", "dev"]
-
-# Build stage
-FROM base AS builder
-WORKDIR /app
-
-COPY package.json package-lock.json* ./
+COPY package*.json ./
+COPY tsconfig.json ./
 RUN npm ci
-
-COPY . .
+COPY src ./src
+COPY prisma ./prisma
+RUN npx prisma generate
 RUN npm run build
 
-# Production stage
-FROM base AS production
+FROM node:20-alpine
 WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 app
-
-# Copy built application
-COPY --from=builder --chown=app:nodejs /app/dist ./dist
-COPY --from=builder --chown=app:nodejs /app/node_modules ./node_modules
-COPY --chown=app:nodejs package*.json ./
-
-USER app
-
-EXPOSE 3002
-
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY prisma ./prisma
+EXPOSE 3001
 CMD ["npm", "start"]

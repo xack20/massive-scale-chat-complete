@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chat-app-config
+  namespace: chat-app
+data:
+  NODE_ENV: "production"
+  CORS_ORIGIN: "https://chat.example.com"
+  KAFKA_BROKERS: "kafka-service:9092"
+  REDIS_URL: "redis://redis-service:6379"
+  MONGODB_URL: "mongodb://mongodb-service:27017/chatapp"
+  DATABASE_URL: "postgresql://chatuser:chatpass123@postgresql-service:5432/chatapp"

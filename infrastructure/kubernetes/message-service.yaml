@@ -1,2 +1,35 @@
-# message-service.yaml
-# Created by automated audit system
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: message-service
+  namespace: chat-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: message-service
+  template:
+    metadata:
+      labels:
+        app: message-service
+    spec:
+      containers:
+      - name: message-service
+        image: chat-app/message-service:latest
+        ports:
+        - containerPort: 3002
+        envFrom:
+        - configMapRef:
+            name: chat-app-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: message-service
+  namespace: chat-app
+spec:
+  selector:
+    app: message-service
+  ports:
+  - port: 3002
+    targetPort: 3002

@@ -1,2 +1,4 @@
-# namespace.yaml
-# Created by automated audit system
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chat-app
