@@ -1,10 +1,11 @@
-import express, { Application } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
 import compression from 'compression';
-import morgan from 'morgan';
+import cors from 'cors';
 import dotenv from 'dotenv';
+import express, { Application, NextFunction, Request, Response } from 'express';
+import helmet from 'helmet';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import morgan from 'morgan';
+import client from 'prom-client';
 
 // Load environment variables
 dotenv.config({ path: '../../.env' });
@@ -23,6 +24,30 @@ import { logger } from './utils/logger';
 // Initialize express app
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
+
+// Prometheus metrics setup
+client.collectDefaultMetrics();
+const httpRequestDuration = new client.Histogram({
+  name: 'api_gateway_http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds for API Gateway',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2,5]
+});
+const requestCounter = new client.Counter({
+  name: 'api_gateway_requests_total',
+  help: 'Total number of requests received by API Gateway',
+  labelNames: ['method','route']
+});
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    const route = (req as any).route?.path || req.path;
+    end({ method: req.method, route, status_code: res.statusCode });
+    requestCounter.inc({ method: req.method, route });
+  });
+  next();
+});
 
 // Security middleware
 app.use(helmet());
@@ -49,12 +74,33 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api', rateLimiter);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'healthy',
     service: 'api-gateway',
     timestamp: new Date().toISOString()
   });
+});
+
+// Liveness & Readiness
+app.get('/livez', (_req: Request, res: Response) => res.status(200).send('ok'));
+app.get('/readyz', async (_req: Request, res: Response) => {
+  try {
+    // Gateway readiness: for now just always ready (could add downstream probes later)
+    res.status(200).send('ready');
+  } catch (e) {
+    res.status(500).send('not-ready');
+  }
+});
+
+// Metrics endpoint
+app.get('/metrics', async (_req: Request, res: Response) => {
+  try {
+    res.set('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+  } catch (err) {
+    res.status(500).end((err as Error).message);
+  }
 });
 
 // API Routes
@@ -105,7 +151,7 @@ app.use('/ws', createProxyMiddleware({
 app.use(errorHandler);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('*', (req: Request, res: Response) => {
   res.status(404).json({
     error: 'Not Found',
     message: 'The requested resource could not be found',

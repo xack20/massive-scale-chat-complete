@@ -1,8 +1,16 @@
-import { Server } from 'socket.io';
 import Redis from 'ioredis';
+import { Server } from 'socket.io';
 import { logger } from '../utils/logger';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379');
+const buildRedisUrl = () => {
+  const base = process.env.REDIS_URL || 'redis://redis:6379';
+  const password = process.env.REDIS_PASSWORD;
+  if (!password) return base;
+  if (base.includes('@')) return base; // already has credentials
+  return base.replace('redis://', `redis://:${password}@`);
+};
+
+const redis = new Redis(buildRedisUrl());
 
 export class PresenceManager {
   private static io: Server;

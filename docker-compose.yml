@@ -153,10 +153,11 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3002
-      MONGODB_URL: mongodb://chatuser:chatpass123@mongodb:27017/chatapp
+      MONGODB_URL: mongodb://chatuser:chatpass123@mongodb:27017/chatapp?authSource=admin
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: chatpass123
       KAFKA_BROKERS: kafka:29092
+      KAFKA_DISABLED: 'false'
       JWT_SECRET: your-jwt-secret-here-change-in-production
     depends_on:
       - mongodb
@@ -174,11 +175,12 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3003
-      MONGODB_URL: mongodb://chatuser:chatpass123@mongodb:27017/chatapp
-      MINIO_ENDPOINT: minio:9000
+      MONGODB_URL: mongodb://chatuser:chatpass123@mongodb:27017/chatapp?authSource=admin
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin123
-      MINIO_BUCKET: chat-files
+      MINIO_BUCKET_NAME: chat-files
       JWT_SECRET: your-jwt-secret-here-change-in-production
       MAX_FILE_SIZE: 50MB
     depends_on:
@@ -199,6 +201,7 @@ services:
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: chatpass123
       KAFKA_BROKERS: kafka:29092
+      KAFKA_DISABLED: 'false'
       JWT_SECRET: your-jwt-secret-here-change-in-production
       EMAIL_SERVICE: sendgrid
       SENDGRID_API_KEY: your-sendgrid-api-key
@@ -222,6 +225,7 @@ services:
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: chatpass123
       KAFKA_BROKERS: kafka:29092
+      KAFKA_DISABLED: 'false'
       JWT_SECRET: your-jwt-secret-here-change-in-production
     depends_on:
       - redis
@@ -235,7 +239,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3006:3000"
+      # The frontend container starts Next.js on port 3006 (see package.json start script),
+      # but previously the mapping exposed host 3006 -> container 3000 causing connection resets.
+      # Align mapping so host 3006 maps to container 3006.
+      - "3006:3006"
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost/api

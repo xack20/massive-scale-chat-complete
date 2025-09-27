@@ -12,4 +12,5 @@ COPY package*.json ./
 RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 EXPOSE 3005
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:3005/readyz || exit 1
 CMD ["npm", "start"]
