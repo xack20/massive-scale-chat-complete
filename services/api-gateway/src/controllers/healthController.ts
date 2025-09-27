@@ -1,11 +1,27 @@
-import { Request, Response } from 'express';
-import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
+import axios from 'axios';
+import { Request, Response } from 'express';
 import Redis from 'ioredis';
 import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
-const redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379');
+
+// Robust Redis initialization supporting password-protected instances.
+// Priority: explicit REDIS_URL (may already contain credentials), otherwise host/port with REDIS_PASSWORD.
+let redis: Redis;
+try {
+  const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
+  const parsed = new URL(redisUrl);
+  // Inject password if provided separately and not already in URL
+  if (process.env.REDIS_PASSWORD && !parsed.password) {
+    parsed.password = process.env.REDIS_PASSWORD;
+  }
+  redis = new Redis(parsed.toString());
+} catch (e) {
+  logger.error('Failed to initialize Redis client', e);
+  // Fallback (will likely error if password required, but avoids crash on startup)
+  redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', process.env.REDIS_PASSWORD ? { password: process.env.REDIS_PASSWORD } as any : undefined);
+}
 
 export const healthController = {
   async check(req: Request, res: Response) {

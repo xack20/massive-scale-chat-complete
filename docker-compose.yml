@@ -107,10 +107,14 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
+      # Prisma in api-gateway expects DATABASE_URL (schema.prisma). POSTGRES_URL left for backward compatibility.
       POSTGRES_URL: postgresql://chatuser:chatpass123@postgresql:5432/chatapp
+      DATABASE_URL: postgresql://chatuser:chatpass123@postgresql:5432/chatapp
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: chatpass123
       JWT_SECRET: your-jwt-secret-here-change-in-production
+      # Allow both direct frontend port and HAProxy root domain for browser origins
+      CORS_ORIGIN: "http://localhost,http://localhost:3006,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3006,http://127.0.0.1:3000"
       USER_SERVICE_URL: http://user-service:3001
       MESSAGE_SERVICE_URL: http://message-service:3002
       FILE_SERVICE_URL: http://file-service:3003
