@@ -55,3 +55,5 @@ test-results/
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
 .codacy
+.playwright-mcp
+package-lock.json

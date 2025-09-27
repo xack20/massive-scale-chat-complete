@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { cn, formatDate, getInitials } from '../lib/utils';
 import { Message } from '../types';
 
@@ -32,9 +33,12 @@ export default function MessageList({ messages, currentUserId }: MessageListProp
             )}
           >
             {message.senderAvatar ? (
-              <img
+              <Image
                 src={message.senderAvatar}
                 alt={message.senderName}
+                width={40}
+                height={40}
+                unoptimized
                 className="h-10 w-10 rounded-full border border-white/20 object-cover"
               />
             ) : (

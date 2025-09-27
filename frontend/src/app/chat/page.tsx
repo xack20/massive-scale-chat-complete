@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import MessageInput from '../../components/MessageInput';
 import MessageList from '../../components/MessageList';
 import UserList from '../../components/UserList';
@@ -15,30 +15,81 @@ export default function ChatPage() {
   const { socket, connected } = useSocket(token);
   const [messages, setMessages] = useState<Message[]>([]);
 
+  const greetingName = useMemo(() => {
+    const displayName = user?.fullName || user?.username;
+    if (!displayName) return 'there';
+    return displayName.split(' ')[0];
+  }, [user?.fullName, user?.username]);
+
+  const headline = user ? `Welcome back, ${greetingName}` : 'Welcome to the lounge';
+
   useEffect(() => {
-    if (socket) {
-      socket.on('new-message', (message: Message) => {
-        setMessages((prev: Message[]) => [...prev, message]);
+    if (!socket) return;
+
+    const handleNewMessage = (message: Message) => {
+      setMessages((prev: Message[]) => {
+        const exists = prev.some((item) => item.id === message.id);
+        return exists ? prev : [...prev, message];
       });
-    }
+    };
+
+    socket.on('new-message', handleNewMessage);
+
+    return () => {
+      socket.off('new-message', handleNewMessage);
+    };
   }, [socket]);
 
   return (
-    <div className="flex h-screen">
-      <aside className="w-64 bg-gray-100">
-        <UserList />
-      </aside>
-      <main className="flex-1 flex flex-col">
-        <header className="bg-white shadow p-4">
-          <h1 className="text-xl font-bold">Chat Room</h1>
-        </header>
-        <div className="flex-1 overflow-y-auto p-4">
-          <MessageList messages={messages} />
-        </div>
-        <div className="p-4">
-          <MessageInput />
-        </div>
-      </main>
+    <div className="relative min-h-screen overflow-hidden px-4 py-10 md:px-8 lg:px-12">
+      <div
+        className="pointer-events-none absolute inset-0 bg-aurora opacity-50 blur-3xl"
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col-reverse gap-6 lg:h-[calc(100vh-6rem)] lg:flex-row">
+        <main className="glass-panel flex flex-1 flex-col overflow-hidden border-white/10 bg-slate-950/40">
+          <header className="flex flex-col gap-3 border-b border-white/10 px-6 py-6 sm:flex-row sm:items-center sm:justify-between md:px-8">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/40">Live conversation</p>
+              <h1 className="text-2xl font-semibold text-white">{headline}</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 sm:inline">
+                {messages.length ? `${messages.length} ${messages.length === 1 ? 'message' : 'messages'}` : 'No messages yet'}
+              </span>
+              <span
+                className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                  connected
+                    ? 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200'
+                    : 'border-amber-400/30 bg-amber-500/15 text-amber-200'
+                }`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    connected
+                      ? 'bg-emerald-400 ring-2 ring-emerald-300/60 ring-offset-1 ring-offset-transparent'
+                      : 'bg-amber-400 animate-pulse'
+                  }`}
+                />
+                {connected ? 'Connected' : 'Connecting…'}
+              </span>
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 md:px-8">
+            <MessageList messages={messages} currentUserId={user?.id} />
+          </div>
+
+          <div className="border-t border-white/10 px-6 py-6 md:px-8">
+            <MessageInput />
+          </div>
+        </main>
+
+        <aside className="w-full lg:w-80 lg:flex-shrink-0">
+          <UserList className="lg:h-full" />
+        </aside>
+      </div>
     </div>
   );
 }

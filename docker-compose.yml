@@ -249,9 +249,9 @@ services:
       - "3006:3006"
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost/api
-      NEXT_PUBLIC_WS_URL: ws://localhost/ws
-      NEXT_PUBLIC_FILE_UPLOAD_URL: http://localhost/api/files
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000/ws
+      NEXT_PUBLIC_FILE_UPLOAD_URL: http://localhost:3000/api/files
     depends_on:
       - api-gateway
     networks:
