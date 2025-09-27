@@ -12,14 +12,14 @@ Massive Scale Chat is a microservices-based real‑time communication platform. 
 - Event-driven extensibility (Kafka event backbone)
 - Operational transparency (health endpoints, planned metrics/tracing)
 
-```
+```text
 Client (Web / Mobile)
 	│ HTTP(S) / WebSocket
 	▼
 ┌─────────────────────────────────────┐
 │            API Gateway              │  Express + http-proxy-middleware
 └────────────────┬────────────────────┘
-		 │(path-based proxy & auth)
+				 │ (path-based proxy & auth)
  ┌───────────────┼───────────────┬───────────────┬───────────────┬──────────────┐
  │               │               │               │               │              │
  ▼               ▼               ▼               ▼               ▼              ▼
@@ -41,38 +41,46 @@ User Service  Message Service  File Service  Notification Svc  Presence Svc   (F
 ## 3. Runtime Communication Flows
 
 ### 3.1 Synchronous (Request/Response)
+
 - Clients invoke REST endpoints via API Gateway (`/api/...`).
 - Gateway applies authentication (JWT header → `authMiddleware`) then proxies to downstream.
 - Service responses pass back unchanged (no aggregation yet).
 
 ### 3.2 Real-Time (WebSocket / Socket.IO)
+
 - WebSocket endpoint exposed at `/ws` (proxied to Presence Service by gateway).
 - Presence Service manages session events (`user-online`, `typing`, `stop-typing`) and emits `presence-update` & typing broadcasts.
 - Message Service currently sets up Socket.IO room join/leave semantics (future enhancement: message broadcast upon persistence).
 
 ### 3.3 Event Streaming (Kafka)
+
 - Message Service publishes topics: `message-sent`, `message-updated`, `message-deleted` (actual names in code: `message-sent`, etc.).
 - Notification Service subscribes to domain topics (`message-sent`, `user-activity`).
 - Future agents (moderation, enrichment) will subscribe/emit additional events per `AGENTS.md` proposals.
 
 ### 3.4 Caching & Presence
+
 - Presence states stored as ephemeral Redis keys: `presence:<userId>` (TTL 300s). Each entry: `{ status, socketId, lastSeen }`.
 - Presence Service invalidates keys on disconnect by scanning keys (improvement opportunity: maintain reverse index or Redis set for O(1) lookup).
 
 ## 4. Data Models (Representative)
 
 ### 4.1 User (Prisma – simplified)
-```
+
+```text
 id (UUID) | username | email | password | fullName | avatar | bio | role | isActive | isVerified | lastLogin | timestamps
 ```
 
 ### 4.2 Message (Mongoose)
+
 Supports reactions, attachments, edits, soft delete (`deletedAt`), read receipts, threading (`replyTo`, `threadId`), sender metadata.
 
 ### 4.3 Conversation (Mongoose)
+
 Tracks participants (roles + lastSeen), `lastMessage` projection, settings (privacy, invite policy), archival flags.
 
 ### 4.4 Notification (Redis list element – ephemeral)
+
 Stored as JSON objects under `notifications:<userId>` (FIFO semantics). No persistence migration yet (future: durable store or TTL management).
 
 ## 5. Security Boundaries
@@ -136,7 +144,8 @@ Planned / To Implement (see roadmap):
 | Event Naming | Mixed (`message-sent`) vs proposed (`message.persisted`) | Adopt canonical naming & alias transitional topics |
 | Notification Persistence | Pure Redis lists | Introduce TTL or migration to durable store (Mongo/Postgres) |
 
-## 11. Extension Path (Short-Term)
+### 11. Extension Path (Short-Term)
+
 1. Implement metrics (user-service pilot) → replicate pattern.
 2. Standardize event schema + envelope (correlationId, timestamp ISO8601).
 3. Add gateway request correlation ID header pass-through (`x-correlation-id`).
