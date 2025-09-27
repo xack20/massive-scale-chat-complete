@@ -250,10 +250,6 @@ services:
       NEXT_PUBLIC_FILE_UPLOAD_URL: http://localhost/api/files
     depends_on:
       - api-gateway
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
     networks:
       - chat-network
 
