@@ -1,3 +1,4 @@
+# Dockerfile for user-service
 FROM node:20 AS builder
 WORKDIR /app
 COPY package*.json ./
@@ -15,6 +16,7 @@ RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy prisma schema and seed script (ensure seed.ts available in runtime image)
 COPY prisma ./prisma
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:3001/readyz || exit 1

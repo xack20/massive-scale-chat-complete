@@ -1,5 +1,8 @@
 'use client';
 
+// Explicit React import to satisfy TS when jsxImportSource/automatic not resolving types
+import * as React from 'react';
+
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AuthInput from '../../components/auth/AuthInput';
@@ -38,8 +41,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
         <h2 className="text-center text-3xl font-bold">Sign in</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="text-red-500" role="alert">{error}</div>}
+        <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
+          {error && <div className="text-red-500" role="alert" data-testid="error-message">{error}</div>}
           <AuthInput
             type="email"
             placeholder="Email"
@@ -47,6 +50,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             error={fieldErrors.email}
             required
+            data-testid="email-input"
           />
           <AuthInput
             type="password"
@@ -55,14 +59,15 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             error={fieldErrors.password}
             required
+            data-testid="password-input"
           />
           {password && <PasswordStrength password={password} />}
-          <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
+          <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded" data-testid="login-button">
             Sign In
           </button>
         </form>
         <p className="text-center text-sm text-gray-600">
-          Don&apos;t have an account? <a href="/register" className="text-blue-600 hover:underline">Register</a>
+          Don&apos;t have an account? <a href="/register" className="text-blue-600 hover:underline" data-testid="register-link">Register</a>
         </p>
       </div>
     </div>
