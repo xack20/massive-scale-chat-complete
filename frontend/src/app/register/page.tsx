@@ -5,7 +5,7 @@ import * as React from 'react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AuthInput from '../../components/auth/AuthInput';
 import PasswordStrength from '../../components/auth/PasswordStrength';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,22 +27,51 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; username?: string; password?: string; confirm?: string }>({});
+  const [touched, setTouched] = useState<{ email?: boolean; username?: boolean; password?: boolean; confirm?: boolean }>({});
   const [loading, setLoading] = useState(false);
 
-  const validate = () => {
+  const validate = useCallback(() => {
     const fe: typeof fieldErrors = {};
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fe.email = 'Enter a valid email address';
-    if (!username || username.length < 3) fe.username = 'Pick a username with at least 3 characters';
-    if (password.length < 8) fe.password = 'Minimum 8 characters for security';
-    if (password !== confirm) fe.confirm = 'Passwords must match perfectly';
-    setFieldErrors(fe);
-    return Object.keys(fe).length === 0;
-  };
+    // Only validate if field is not empty
+    if (email) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fe.email = 'Enter a valid email address';
+    }
+    if (username) {
+      if (username.length < 3) fe.username = 'Pick a username with at least 3 characters';
+    }
+    if (password) {
+      if (password.length < 8) fe.password = 'Minimum 8 characters for security';
+    }
+    if (password && confirm) {
+      if (password !== confirm) fe.confirm = 'Passwords must match perfectly';
+    }
+    return fe;
+  }, [email, username, password, confirm]);
+
+  const isFormValid = useCallback(() => {
+    const errors = validate();
+    return email && username && password && confirm && Object.keys(errors).length === 0;
+  }, [email, username, password, confirm, validate]);
 
   useEffect(() => {
-    validate();
-    // revalidate when key fields change
-  }, [email, username, password, confirm]);
+    // Only update field errors if fields have been touched
+    if (Object.keys(touched).length === 0) {
+      // No fields touched yet, don't show any errors
+      setFieldErrors({});
+      return;
+    }
+    
+    const errors = validate();
+    const visibleErrors: typeof fieldErrors = {};
+    
+    // Only show errors for fields that have been touched
+    if (touched.email && errors.email) visibleErrors.email = errors.email;
+    if (touched.username && errors.username) visibleErrors.username = errors.username;
+    if (touched.password && errors.password) visibleErrors.password = errors.password;
+    if (touched.confirm && errors.confirm) visibleErrors.confirm = errors.confirm;
+    
+    setFieldErrors(visibleErrors);
+  }, [email, username, password, confirm, touched, validate]);
 
   const heroSubtitle = useMemo(() => {
     if (!username) return 'Craft a shared intelligence space for your team, clients, and communities.';
@@ -53,14 +82,20 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     setSuccess('');
-    if (!validate()) return;
+    
+    // Mark all fields as touched to show validation errors
+    setTouched({ email: true, username: true, password: true, confirm: true });
+    
+    if (!isFormValid()) return;
+    
     setLoading(true);
     try {
       await register({ email, password, username, fullName: fullName || username });
       setSuccess('Your workspace is live. Redirecting to the experience...');
       setTimeout(() => router.push('/chat'), 600);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'We could not complete your registration');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error?.response?.data?.message || 'We could not complete your registration');
     } finally {
       setLoading(false);
     }
@@ -132,6 +167,7 @@ export default function RegisterPage() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
                 error={fieldErrors.email}
                 required
                 autoComplete="email"
@@ -144,6 +180,7 @@ export default function RegisterPage() {
                   placeholder="your-handle"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  onBlur={() => setTouched(prev => ({ ...prev, username: true }))}
                   error={fieldErrors.username}
                   required
                   autoComplete="username"
@@ -165,6 +202,7 @@ export default function RegisterPage() {
                 placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
                 error={fieldErrors.password}
                 required
                 autoComplete="new-password"
@@ -178,6 +216,7 @@ export default function RegisterPage() {
                 placeholder="Re-type password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
+                onBlur={() => setTouched(prev => ({ ...prev, confirm: true }))}
                 error={fieldErrors.confirm}
                 required
                 autoComplete="new-password"
@@ -186,7 +225,7 @@ export default function RegisterPage() {
               />
               <button
                 type="submit"
-                disabled={loading || Object.keys(fieldErrors).length > 0}
+                disabled={loading || !isFormValid()}
                 className="primary-button w-full justify-center disabled:opacity-60 disabled:grayscale"
                 data-testid="register-button"
               >

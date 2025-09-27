@@ -219,6 +219,16 @@ app.use('/ws', createProxyMiddleware({
   changeOrigin: true
 }));
 
+// Socket.IO proxy for chat features (no auth middleware for WebSocket handshake)
+app.use('/socket.io', createProxyMiddleware({
+  target: process.env.MESSAGE_SERVICE_URL || 'http://message-service:3002',
+  ws: true,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/socket.io': '/socket.io'
+  }
+}));
+
 // Error handling middleware
 app.use(errorHandler);
 

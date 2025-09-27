@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
-import { initSocket, getSocket, disconnectSocket } from '../lib/socket';
+import { disconnectSocket, initSocket } from '../lib/socket';
 
 export const useSocket = (token?: string) => {
   const [socket, setSocket] = useState<Socket | null>(null);

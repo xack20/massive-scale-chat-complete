@@ -53,8 +53,9 @@ export default function LoginPage() {
       }
       await login(email, password);
       router.push('/chat');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'We could not verify those credentials');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'We could not verify those credentials');
     }
   };
 

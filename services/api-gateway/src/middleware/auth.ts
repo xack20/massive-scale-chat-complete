@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger';
 
@@ -23,7 +23,7 @@ export const authMiddleware = async (
 ) => {
   try {
     // Skip authentication for certain paths
-    const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/health'];
+    const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/health', '/socket.io', '/ws'];
     if (publicPaths.some(path => req.path.startsWith(path))) {
       return next();
     }

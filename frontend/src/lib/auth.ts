@@ -23,7 +23,7 @@ export const auth = {
     return { token, user };
   },
 
-  async register(data: any) {
+  async register(data: { email: string; password: string; username: string; fullName: string }) {
     const response = await api.post('/auth/register', data);
     const { token, user } = response.data;
     if (hasWindow()) {
