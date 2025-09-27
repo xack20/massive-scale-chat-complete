@@ -1,21 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import MessageInput from '../../components/MessageInput';
+import MessageList from '../../components/MessageList';
+import UserList from '../../components/UserList';
 import { useAuth } from '../../hooks/useAuth';
 import { useSocket } from '../../hooks/useSocket';
-import MessageList from '../../components/MessageList';
-import MessageInput from '../../components/MessageInput';
-import UserList from '../../components/UserList';
+import { auth } from '../../lib/auth';
+import { Message } from '../../types';
 
 export default function ChatPage() {
   const { user } = useAuth();
-  const { socket, connected } = useSocket(user?.token);
-  const [messages, setMessages] = useState([]);
+  const token = auth.getToken() || undefined;
+  const { socket, connected } = useSocket(token);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
     if (socket) {
-      socket.on('new-message', (message) => {
-        setMessages(prev => [...prev, message]);
+      socket.on('new-message', (message: Message) => {
+        setMessages((prev: Message[]) => [...prev, message]);
       });
     }
   }, [socket]);

@@ -85,11 +85,6 @@ services:
     ports:
       - "80:80"
       - "8080:8080"
-      - "3001:3001"
-      - "3002:3002"
-      - "3003:3003"
-      - "3004:3004"
-      - "3005:3005"
     volumes:
       - ./infrastructure/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     depends_on:
@@ -125,9 +120,6 @@ services:
       - postgresql
       - redis
       - kafka
-    volumes:
-      - ./services/api-gateway:/app
-      - /app/node_modules
     networks:
       - chat-network
 
@@ -149,9 +141,6 @@ services:
       - postgresql
       - redis
       - kafka
-    volumes:
-      - ./services/user-service:/app
-      - /app/node_modules
     networks:
       - chat-network
 
@@ -173,9 +162,6 @@ services:
       - mongodb
       - redis
       - kafka
-    volumes:
-      - ./services/message-service:/app
-      - /app/node_modules
     networks:
       - chat-network
 
@@ -198,9 +184,6 @@ services:
     depends_on:
       - mongodb
       - minio
-    volumes:
-      - ./services/file-service:/app
-      - /app/node_modules
     networks:
       - chat-network
 
@@ -224,9 +207,6 @@ services:
     depends_on:
       - redis
       - kafka
-    volumes:
-      - ./services/notification-service:/app
-      - /app/node_modules
     networks:
       - chat-network
 
@@ -246,9 +226,6 @@ services:
     depends_on:
       - redis
       - kafka
-    volumes:
-      - ./services/presence-service:/app
-      - /app/node_modules
     networks:
       - chat-network
 

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { logger } from '../utils/logger';
 
 interface ErrorWithStatus extends Error {
@@ -26,7 +26,8 @@ export const errorHandler = (
   });
 
   // Determine status code
-  const statusCode = err.status || err.statusCode || 500;
+  const rawStatus = (err.status ?? err.statusCode);
+  const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
 
   // Prepare error response
   const response: any = {
@@ -64,7 +65,7 @@ export const errorHandler = (
     return res.status(400).json(response);
   }
 
-  if (err.name === 'MongoError' && err.code === 11000) {
+  if (err.name === 'MongoError' && String(err.code) === '11000') {
     response.error = 'Duplicate Entry';
     response.message = 'A record with this value already exists';
     return res.status(409).json(response);

@@ -1,9 +1,8 @@
-import { Request, Response } from 'express';
-import axios from 'axios';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { logger } from '../utils/logger';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -61,13 +60,9 @@ export const authController = {
 
       // Generate token
       const token = jwt.sign(
-        {
-          userId: user.id,
-          email: user.email,
-          role: user.role
-        },
-        process.env.JWT_SECRET!,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+        { userId: user.id, email: user.email, role: user.role },
+        (process.env.JWT_SECRET || 'dev-secret'),
+        { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
       );
 
       // Send response
@@ -127,13 +122,9 @@ export const authController = {
 
       // Generate token
       const token = jwt.sign(
-        {
-          userId: user.id,
-          email: user.email,
-          role: user.role
-        },
-        process.env.JWT_SECRET!,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+        { userId: user.id, email: user.email, role: user.role },
+        (process.env.JWT_SECRET || 'dev-secret'),
+        { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
       );
 
       // Send response
@@ -169,18 +160,14 @@ export const authController = {
         });
       }
 
-      // Verify and decode token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    // Verify and decode token
+    const decoded = jwt.verify(token, (process.env.JWT_SECRET || 'dev-secret')) as any;
 
       // Generate new token
       const newToken = jwt.sign(
-        {
-          userId: decoded.userId,
-          email: decoded.email,
-          role: decoded.role
-        },
-        process.env.JWT_SECRET!,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+        { userId: decoded.userId, email: decoded.email, role: decoded.role },
+        (process.env.JWT_SECRET || 'dev-secret'),
+        { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
       );
 
       res.json({
