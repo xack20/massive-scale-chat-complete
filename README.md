@@ -442,7 +442,12 @@ npm run test:integration
 ```bash
 # Run E2E tests
 cd frontend && npm run test:e2e
+
+# Run UI issue detection tests
+npm run test:ui
 ```
+
+See [UI Testing Guide](docs/UI-TESTING.md) for detailed information on automated UI issue detection.
 
 ### Load Testing
 ```bash

@@ -1,7 +1,10 @@
-import { Page, expect, Locator } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 
 export class ChatPage {
-  constructor(private page: Page) {}
+  constructor(private readonly _page: Page) {}
+
+  // Expose underlying page for advanced scenarios (e.g., CDP, viewport changes)
+  get page() { return this._page; }
 
   // Selectors
   get sidebar() { return this.page.locator('[data-testid="chat-sidebar"]'); }
@@ -17,8 +20,8 @@ export class ChatPage {
 
   // Actions
   async goto() {
-    await this.page.goto('/chat');
-    await expect(this.sidebar).toBeVisible();
+  await this.page.goto('/chat');
+  await expect(this.sidebar).toBeVisible();
   }
 
   async selectRoom(roomName: string) {
@@ -88,7 +91,7 @@ export class ChatPage {
 }
 
 export class RoomManagePage {
-  constructor(private page: Page) {}
+  constructor(private readonly page: Page) {}
 
   // Selectors
   get createRoomButton() { return this.page.locator('[data-testid="create-room-button"]'); }

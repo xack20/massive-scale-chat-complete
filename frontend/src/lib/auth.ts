@@ -14,7 +14,12 @@ export interface User {
 
 export const auth = {
   async login(email: string, password: string) {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await api.post('/auth/login', { email, password }).catch(err => {
+      // Surface additional info for tests when running headless
+      // eslint-disable-next-line no-console
+      console.error('[auth.login] failed', err?.response?.status, err?.response?.data);
+      throw err;
+    });
     const { token, user } = response.data;
     if (hasWindow()) {
       localStorage.setItem('token', token);
@@ -24,7 +29,11 @@ export const auth = {
   },
 
   async register(data: { email: string; password: string; username: string; fullName: string }) {
-    const response = await api.post('/auth/register', data);
+    const response = await api.post('/auth/register', data).catch(err => {
+      // eslint-disable-next-line no-console
+      console.error('[auth.register] failed', err?.response?.status, err?.response?.data);
+      throw err;
+    });
     const { token, user } = response.data;
     if (hasWindow()) {
       localStorage.setItem('token', token);

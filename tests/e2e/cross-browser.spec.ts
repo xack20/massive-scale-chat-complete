@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-fixtures';
+import { expect, test } from './fixtures/test-fixtures';
 
 test.describe('Cross-browser Compatibility', () => {
   test.describe('Core Features in All Browsers', () => {

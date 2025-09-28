@@ -1,0 +1,14 @@
+{
+  "name": "massive-scale-chat-tests",
+  "version": "1.0.0",
+  "description": "UI and E2E tests for Massive Scale Chat",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test ui-issues.test.js",
+    "test:ui:debug": "playwright test ui-issues.test.js --debug",
+    "test:ui:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

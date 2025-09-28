@@ -1,5 +1,4 @@
-import { test, expect } from '../fixtures/test-fixtures';
-import { apiRequest } from '../utils/api-helpers';
+import { expect, test } from './fixtures/test-fixtures';
 
 test.describe('Performance Tests', () => {
   test.describe('Load Testing', () => {
@@ -74,7 +73,7 @@ test.describe('Performance Tests', () => {
       
       // Verify all messages are visible
       for (let i = 0; i < messagesCount; i++) {
-        await expect(chatPage.page.locator(`text*="Rapid message ${i + 1}"`)).toBeVisible();
+  await expect(chatPage.page.locator(`text*="Rapid message ${i + 1}"`)).toBeVisible();
       }
     });
   });
@@ -85,7 +84,7 @@ test.describe('Performance Tests', () => {
       await chatPage.selectRoom('Testing');
       
       // Get initial performance metrics
-      const initialMetrics = await chatPage.page.evaluate(() => {
+  const initialMetrics = await chatPage.page.evaluate(() => {
         return {
           usedJSHeapSize: (performance as any).memory?.usedJSHeapSize || 0,
           totalJSHeapSize: (performance as any).memory?.totalJSHeapSize || 0,
@@ -107,7 +106,7 @@ test.describe('Performance Tests', () => {
       }
       
       // Get final performance metrics
-      const finalMetrics = await chatPage.page.evaluate(() => {
+  const finalMetrics = await chatPage.page.evaluate(() => {
         return {
           usedJSHeapSize: (performance as any).memory?.usedJSHeapSize || 0,
           totalJSHeapSize: (performance as any).memory?.totalJSHeapSize || 0,
@@ -126,7 +125,7 @@ test.describe('Performance Tests', () => {
   test.describe('Network Performance', () => {
     test('should handle slow network conditions', async ({ chatPage, authenticatedUser }) => {
       // Simulate slow network
-      const client = await chatPage.page.context().newCDPSession(chatPage.page);
+  const client = await chatPage.page.context().newCDPSession(chatPage.page);
       await client.send('Network.enable');
       await client.send('Network.emulateNetworkConditions', {
         offline: false,
@@ -162,7 +161,7 @@ test.describe('Performance Tests', () => {
       await chatPage.sendMessage('Message before disconnection');
       
       // Simulate network disconnection
-      const client = await chatPage.page.context().newCDPSession(chatPage.page);
+  const client = await chatPage.page.context().newCDPSession(chatPage.page);
       await client.send('Network.enable');
       await client.send('Network.emulateNetworkConditions', {
         offline: true,

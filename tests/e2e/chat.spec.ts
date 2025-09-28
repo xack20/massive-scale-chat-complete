@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-fixtures';
+import { test } from './fixtures/test-fixtures';
 
 test.describe('Chat Functionality', () => {
   test.describe('Basic Chat', () => {
