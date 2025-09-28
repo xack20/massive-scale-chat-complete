@@ -44,9 +44,13 @@ export function useChat(conversationId?: string) {
       const list: RawMessage[] = Array.isArray(data) ? data : (data.messages as RawMessage[] || []);
       const normalized: Message[] = list.map(normalizeMessage);
       if (pageNum === 1) {
-        setMessages(normalized);
+        // Sort chronologically (oldest first) for initial load
+        setMessages(normalized.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
       } else {
-        setMessages(prev => [...prev, ...normalized]);
+        setMessages(prev => {
+          const combined = [...prev, ...normalized];
+          return combined.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        });
       }
       const more = !Array.isArray(data) && data.hasMore ? data.hasMore : false;
       setHasMore(more);
@@ -79,7 +83,11 @@ export function useChat(conversationId?: string) {
 
     const handleNewMessage = (message: Message) => {
       if (!conversationId || message.conversationId === conversationId) {
-        setMessages(prev => [...prev, message]);
+        setMessages(prev => {
+          const updated = [...prev, message];
+          // Ensure chronological order (oldest first)
+          return updated.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        });
       }
     };
     const handleMessageUpdated = (message: RawMessage) => {

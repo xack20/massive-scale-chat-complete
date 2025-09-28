@@ -54,7 +54,7 @@ export const messageController = {
         conversationId,
         deletedAt: null 
       })
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: 1 })
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit));
 
