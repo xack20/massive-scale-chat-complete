@@ -1,4 +1,5 @@
 import { test as base, expect } from '@playwright/test';
+import { CREATED_TEST_USERS } from '../global-setup';
 import { LoginPage, RegisterPage } from '../pages/auth-pages';
 import { ChatPage, RoomManagePage } from '../pages/chat-pages';
 import { loginUser, registerUser } from '../utils/api-helpers';
@@ -34,34 +35,23 @@ export const test = base.extend<TestFixtures>({
   },
 
   authenticatedUser: async ({ page }, use) => {
-    // Create a unique test user
-    const timestamp = Date.now();
-    const userData = {
-      username: `testuser_${timestamp}`,
-      email: `testuser_${timestamp}@example.com`,
-      password: 'password123',
-    };
-
-    try {
-      // Register the user
-      await registerUser(userData.username, userData.email, userData.password);
-    } catch (error) {
-      // User might already exist, which is fine
+    // Prefer using a pre-created user from global setup to reduce extra registrations
+    const fallbackPassword = 'password123';
+    let reuse = CREATED_TEST_USERS['testuser1'];
+    if (!reuse) {
+      // If global setup not executed or user missing, create a scoped one
+      const timestamp = Date.now();
+      reuse = { username: `testuser_${timestamp}`, email: `testuser_${timestamp}@example.com`, password: fallbackPassword };
+      try {
+        await registerUser(reuse.username, reuse.email, reuse.password);
+      } catch { /* ignore duplicate or transient errors */ }
     }
-
-    // Login to get token
-    const token = await loginUser(userData.email, userData.password);
-
-    // Login through the UI
+    const token = await loginUser(reuse.email, reuse.password);
     const loginPage = new LoginPage(page);
     await loginPage.goto();
-    await loginPage.login(userData.email, userData.password);
+    await loginPage.login(reuse.email, reuse.password);
     await loginPage.expectLoginSuccess();
-
-    await use({
-      ...userData,
-      token,
-    });
+    await use({ ...reuse, token });
   },
 });
 

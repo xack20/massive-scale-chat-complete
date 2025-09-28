@@ -2,6 +2,14 @@ import { chromium, FullConfig } from '@playwright/test';
 import { apiRequest } from './utils/api-helpers';
 
 async function globalSetup(config: FullConfig) {
+  // Allow staging-like runs to explicitly enable auth rate limiting
+  if (process.env.ENABLE_AUTH_RATE_LIMIT === 'true') {
+    console.log('[global-setup] Auth rate limiting ENABLED (staging mode).');
+  } else {
+    // Set a bypass flag for this process if not explicitly enabled
+    process.env.DISABLE_AUTH_RATE_LIMIT = process.env.DISABLE_AUTH_RATE_LIMIT || 'true';
+    console.log('[global-setup] Auth rate limiting disabled for test run (set ENABLE_AUTH_RATE_LIMIT=true to re-enable).');
+  }
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -55,6 +63,9 @@ async function waitForServices() {
   }
 }
 
+// Cache of created users so fixtures can reuse instead of re-registering (reduces noise & rate-limit pressure)
+const CREATED_TEST_USERS: Record<string, { username: string; email: string; password: string }> = {};
+
 async function setupTestUsers() {
   console.log('👥 Setting up test users...');
   
@@ -68,9 +79,11 @@ async function setupTestUsers() {
     try {
       await apiRequest('POST', 'http://localhost:3000/api/auth/register', user);
       console.log(`✅ Created test user: ${user.username}`);
+      CREATED_TEST_USERS[user.username] = user;
     } catch (error: any) {
       if (error?.response?.status === 409) {
         console.log(`ℹ️ Test user ${user.username} already exists`);
+        CREATED_TEST_USERS[user.username] = user;
       } else {
         console.log(`⚠️ Failed to create test user ${user.username}:`, error.message);
       }
@@ -115,3 +128,5 @@ async function setupTestRooms() {
 }
 
 export default globalSetup;
+// Export for fixtures to import and reuse (optional)
+export { CREATED_TEST_USERS };
