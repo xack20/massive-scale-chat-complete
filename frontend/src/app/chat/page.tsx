@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useMemo } from 'react';
 import ConnectionStatus from '../../components/ConnectionStatus';
 import ConversationList from '../../components/ConversationList';
 import MessageInput from '../../components/MessageInput';
@@ -14,7 +14,8 @@ import { useSocket } from '../../hooks/useSocket';
 import { auth } from '../../lib/auth';
 
 function ChatContent() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, isAuthenticated, loading } = useAuth();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get('conversation');
   const recipientUserId = searchParams.get('recipient');
@@ -28,6 +29,30 @@ function ChatContent() {
     if (!displayName) return 'there';
     return displayName.split(' ')[0];
   }, [user?.fullName, user?.username]);
+
+  // Redirect unauthenticated users to login page
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, loading, router]);
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center text-white">
+        <div className="flex items-center space-x-2">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+          <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render chat content for unauthenticated users
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const headline = conversationId
     ? 'Direct Message'

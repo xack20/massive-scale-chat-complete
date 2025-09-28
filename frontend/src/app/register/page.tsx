@@ -18,7 +18,7 @@ const PERKS = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, isAuthenticated, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
@@ -29,6 +29,13 @@ export default function RegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; username?: string; password?: string; confirm?: string }>({});
   const [touched, setTouched] = useState<{ email?: boolean; username?: boolean; password?: boolean; confirm?: boolean }>({});
   const [loading, setLoading] = useState(false);
+
+  // Redirect authenticated users to chat page
+  React.useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push('/chat');
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const validate = useCallback(() => {
     const fe: typeof fieldErrors = {};
@@ -77,6 +84,31 @@ export default function RegisterPage() {
     if (!username) return 'Craft a shared intelligence space for your team, clients, and communities.';
     return `Reserve @${username} and welcome collaborators into a bespoke command center.`;
   }, [username]);
+
+  // Redirect authenticated users to chat page
+  React.useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push('/chat');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Don't render register form if user is authenticated (will redirect)
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

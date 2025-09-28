@@ -18,7 +18,7 @@ const HIGHLIGHTS = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
@@ -40,6 +40,31 @@ export default function LoginPage() {
     }
     return 'Looking sharp—your workspace is moments away.';
   }, [email]);
+
+  // Redirect authenticated users to chat page
+  React.useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.push('/chat');
+    }
+  }, [isAuthenticated, loading, router]);
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Don't render login form if user is authenticated (will redirect)
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
