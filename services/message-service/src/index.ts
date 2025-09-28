@@ -26,6 +26,7 @@ import { logger } from './utils/logger';
 import mongoose from 'mongoose';
 import client from 'prom-client';
 import { initializeKafka } from './services/kafkaService';
+import { registerSocketIO } from './services/socketRegistry';
 import { initializeSocketService } from './services/socketService';
 
 // Initialize express app
@@ -150,8 +151,9 @@ const startServer = async () => {
       await initializeKafka();
     }
     
-    // Initialize Socket.IO service
-    await initializeSocketService(io);
+  // Register IO instance globally & initialize handlers
+  registerSocketIO(io);
+  await initializeSocketService(io);
     
     // Start server
     server.listen(PORT, () => {

@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { Message } from '../models/message';
 import { Conversation } from '../models/conversation';
+import { Message } from '../models/message';
 import { publishToKafka } from '../services/kafkaService';
+import { getSocketIO } from '../services/socketRegistry';
 import { logger } from '../utils/logger';
 
 export const messageController = {
@@ -32,7 +33,10 @@ export const messageController = {
         }
       });
 
-      await publishToKafka('message-sent', message);
+  await publishToKafka('message-sent', message);
+  // Broadcast to conversation room
+  const io = getSocketIO();
+  io?.to(conversationId).emit('new-message', message);
 
       res.status(201).json(message);
     } catch (error) {
@@ -77,7 +81,9 @@ export const messageController = {
         return res.status(404).json({ error: 'Message not found' });
       }
 
-      await publishToKafka('message-updated', message);
+  await publishToKafka('message-updated', message);
+  const io = getSocketIO();
+  io?.to(message.conversationId.toString()).emit('message-updated', message);
       res.json(message);
     } catch (error) {
       logger.error('Error updating message:', error);
@@ -100,7 +106,9 @@ export const messageController = {
         return res.status(404).json({ error: 'Message not found' });
       }
 
-      await publishToKafka('message-deleted', { messageId: id });
+  await publishToKafka('message-deleted', { messageId: id });
+  const io = getSocketIO();
+  io?.to(message.conversationId.toString()).emit('message-deleted', { messageId: id });
       res.json({ message: 'Message deleted successfully' });
     } catch (error) {
       logger.error('Error deleting message:', error);
