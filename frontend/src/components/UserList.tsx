@@ -49,6 +49,9 @@ export default function UserList({ className }: UserListProps) {
 
   const handleUserClick = async (targetUser: User) => {
     try {
+      // Clear any previous errors
+      setError(null);
+      
       // Get current user from localStorage
       const token = localStorage.getItem('token');
       if (!token) {
@@ -56,18 +59,30 @@ export default function UserList({ className }: UserListProps) {
         return;
       }
 
+      console.log('Creating conversation with user:', targetUser);
+      
       // Create or find direct conversation with this user
       const response = await api.post('/messages/conversations/direct', {
         participantId: targetUser.id
       });
       
+      console.log('Conversation response:', response.data);
       const conversation = response.data;
+      const conversationId = conversation.id || conversation._id;
+      
+      if (!conversationId) {
+        throw new Error('No conversation ID returned from server');
+      }
       
       // Navigate to the conversation
-      router.push(`/chat?conversation=${conversation.id}`);
-    } catch (error) {
+      const chatUrl = `/chat?conversation=${conversationId}`;
+      console.log('Navigating to:', chatUrl);
+      router.push(chatUrl);
+    } catch (error: unknown) {
       console.error('Failed to create conversation:', error);
-      setError('Failed to start conversation. Please try again.');
+      const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
+      const errorMessage = axiosError?.response?.data?.message || axiosError?.message || 'Failed to start conversation. Please try again.';
+      setError(errorMessage);
     }
   };
 

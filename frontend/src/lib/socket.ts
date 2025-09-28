@@ -4,20 +4,31 @@ let socket: Socket | null = null;
 
 export const initSocket = (token: string) => {
   const runtimeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
-  // Temporarily connect directly to message service instead of through API Gateway
-  const WS_URL = runtimeEnv.NEXT_PUBLIC_MESSAGE_SERVICE_URL || 'http://localhost:3002';
+  
+  // Try multiple potential ports for the message service
+  const WS_URL = runtimeEnv.NEXT_PUBLIC_MESSAGE_SERVICE_URL || 
+                 runtimeEnv.NEXT_PUBLIC_WS_URL || 
+                 'http://localhost:3001';
+  
+  console.log('Connecting socket to:', WS_URL);
   
   socket = io(WS_URL, {
     auth: { token },
-    transports: ['websocket', 'polling']
+    transports: ['websocket', 'polling'],
+    timeout: 10000,
+    retries: 3
   });
 
   socket.on('connect', () => {
-    // console.log('Socket connected');
+    console.log('Socket connected to:', WS_URL);
   });
 
-  socket.on('disconnect', () => {
-    // console.log('Socket disconnected');
+  socket.on('disconnect', (reason) => {
+    console.log('Socket disconnected:', reason);
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('Socket connection error:', error);
   });
 
   return socket;

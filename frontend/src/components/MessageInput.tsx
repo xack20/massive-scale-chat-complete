@@ -16,19 +16,31 @@ export default function MessageInput({ conversationId, onSendMessage }: MessageI
   const [showEmoji, setShowEmoji] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const emitMessage = () => {
+  const emitMessage = async () => {
     if (!message.trim()) return;
     
-    if (onSendMessage) {
-      // Use the provided send message function
-      onSendMessage(message.trim());
-    } else {
-      // Fallback to socket emission for general chat
-      const socket = getSocket();
-      socket?.emit('send-message', { content: message.trim(), conversationId });
+    const messageContent = message.trim();
+    setMessage(''); // Clear immediately for better UX
+    
+    try {
+      if (onSendMessage) {
+        // Use the provided send message function
+        await onSendMessage(messageContent);
+      } else {
+        // Fallback to socket emission for general chat
+        const socket = getSocket();
+        if (socket && socket.connected) {
+          socket.emit('send-message', { content: messageContent, conversationId });
+        } else {
+          console.warn('Socket not connected for message:', messageContent);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Restore message content on error
+      setMessage(messageContent);
     }
     
-    setMessage('');
     composerRef.current?.focus();
   };
 

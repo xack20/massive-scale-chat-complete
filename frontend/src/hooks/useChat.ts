@@ -147,40 +147,97 @@ export function useChat(conversationId?: string) {
   }, [conversationId]);
 
   const sendMessage = useCallback(async (content: string, attachments?: unknown[]) => {
-    const socket = getSocket();
-    if (!socket || !conversationId) return;
+    if (!conversationId) {
+      console.error('No conversation ID provided');
+      return;
+    }
 
-    return new Promise<Message>((resolve, reject) => {
-      const tempId = `temp-${Date.now()}`;
-      const optimistic: Message = {
-        id: tempId,
-        conversationId,
-        senderId: 'me',
-        senderName: 'Me',
-        content,
-        type: attachments?.length ? 'file' : 'text',
-        attachments: attachments as Message['attachments'],
-        status: 'sending',
-        createdAt: new Date()
-      } as Message;
-      setMessages(prev => [...prev, optimistic]);
-      socket.emit('send-message', { conversationId, content, attachments, type: optimistic.type }, (resp: { error?: string; message?: RawMessage } ) => {
-        if (resp && resp.error) {
-          setError(resp.error);
-          // Mark optimistic message failed
-          setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, status: 'failed' } : m)));
-          return reject(new Error(resp.error));
-        }
-        if (!resp || !resp.message) {
-          setError('No response from server');
-          setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, status: 'failed' } : m)));
-          return reject(new Error('No response'));
-        }
-        const real = normalizeMessage(resp.message);
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: Message = {
+      id: tempId,
+      conversationId,
+      senderId: 'me',
+      senderName: 'Me',
+      content,
+      type: attachments?.length ? 'file' : 'text',
+      attachments: attachments as Message['attachments'],
+      status: 'sending',
+      createdAt: new Date()
+    } as Message;
+    
+    // Add optimistic message immediately
+    setMessages(prev => [...prev, optimistic]);
+
+    try {
+      const socket = getSocket();
+      
+      if (socket && socket.connected) {
+        // Try socket first
+        return new Promise<Message>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            console.warn('Socket timeout, falling back to API');
+            fallbackToAPI();
+          }, 5000);
+          
+          socket.emit('send-message', { conversationId, content, attachments, type: optimistic.type }, (resp: { error?: string; message?: RawMessage } ) => {
+            clearTimeout(timeout);
+            if (resp && resp.error) {
+              console.error('Socket error:', resp.error);
+              fallbackToAPI();
+              return;
+            }
+            if (!resp || !resp.message) {
+              console.warn('No socket response, falling back to API');
+              fallbackToAPI();
+              return;
+            }
+            const real = normalizeMessage(resp.message);
+            setMessages(prev => prev.map(m => (m.id === tempId ? real : m)));
+            resolve(real);
+          });
+          
+          const fallbackToAPI = async () => {
+            try {
+              const response = await api.post('/messages', {
+                conversationId,
+                content,
+                attachments,
+                type: optimistic.type
+              });
+              const real = normalizeMessage(response.data);
+              setMessages(prev => prev.map(m => (m.id === tempId ? real : m)));
+              resolve(real);
+            } catch (apiError: unknown) {
+              console.error('API fallback failed:', apiError);
+              const axiosError = apiError as { response?: { data?: { message?: string } }; message?: string };
+              const errorMsg = axiosError?.response?.data?.message || axiosError?.message || 'Failed to send message';
+              setError(errorMsg);
+              setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, status: 'failed' } : m)));
+              reject(new Error(errorMsg));
+            }
+          };
+        });
+      } else {
+        // Use API directly if socket not available
+        console.log('Socket not available, using API directly');
+        const response = await api.post('/messages', {
+          conversationId,
+          content,
+          attachments,
+          type: optimistic.type
+        });
+        const real = normalizeMessage(response.data);
         setMessages(prev => prev.map(m => (m.id === tempId ? real : m)));
-        resolve(real);
-      });
-    });
+        return real;
+      }
+    } catch (error: unknown) {
+      console.error('Send message failed:', error);
+      const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
+      const errorMsg = axiosError?.response?.data?.message || axiosError?.message || 'Failed to send message';
+      setError(errorMsg);
+      setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, status: 'failed' } : m)));
+      throw error;
+    }
   }, [conversationId]);
 
   const loadMore = useCallback(() => {

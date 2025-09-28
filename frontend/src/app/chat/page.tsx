@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo } from 'react';
+import ConnectionStatus from '../../components/ConnectionStatus';
 import MessageInput from '../../components/MessageInput';
 import MessageList from '../../components/MessageList';
 import UserList from '../../components/UserList';
@@ -15,7 +16,7 @@ function ChatContent() {
   const searchParams = useSearchParams();
   const conversationId = searchParams.get('conversation');
   const token = auth.getToken() || undefined;
-  const { connected } = useSocket(token);
+  useSocket(token);
   const { messages, sendMessage } = useChat(conversationId || undefined);
 
   const greetingName = useMemo(() => {
@@ -48,22 +49,7 @@ function ChatContent() {
               <span className="hidden rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 md:inline">
                 {messages.length ? `${messages.length} ${messages.length === 1 ? 'message' : 'messages'}` : 'No messages yet'}
               </span>
-              <span
-                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                  connected
-                    ? 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200'
-                    : 'border-amber-400/30 bg-amber-500/15 text-amber-200'
-                }`}
-              >
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    connected
-                      ? 'bg-emerald-400 ring-2 ring-emerald-300/60 ring-offset-1 ring-offset-transparent'
-                      : 'bg-amber-400 animate-pulse'
-                  }`}
-                />
-                {connected ? 'Connected' : 'Connecting…'}
-              </span>
+              <ConnectionStatus />
             </div>
           </header>
 
