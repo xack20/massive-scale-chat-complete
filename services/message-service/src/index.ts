@@ -1,3 +1,7 @@
+// Initialize express app and config
+const app: Application = express();
+const PORT = process.env.MESSAGE_SERVICE_PORT || 3002;
+const KAFKA_DISABLED = (process.env.KAFKA_DISABLED || 'false').toLowerCase() === 'true';
 import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -29,10 +33,7 @@ import { initializeKafka } from './services/kafkaService';
 import { registerSocketIO } from './services/socketRegistry';
 import { initializeSocketService } from './services/socketService';
 
-// Initialize express app
-const app: Application = express();
-const PORT = process.env.MESSAGE_SERVICE_PORT || 3002;
-const KAFKA_DISABLED = (process.env.KAFKA_DISABLED || 'false').toLowerCase() === 'true';
+
 
 // Prometheus metrics setup
 client.collectDefaultMetrics();
@@ -87,6 +88,17 @@ app.use(morgan('combined', {
   }
 }));
 
+// Debug middleware to log request details
+app.use((req: Request, res: Response, next: NextFunction) => {
+  logger.info(`Request: ${req.method} ${req.path}`, {
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length'],
+    userAgent: req.headers['user-agent'],
+    authorization: req.headers.authorization ? 'Bearer [PRESENT]' : 'No auth'
+  });
+  next();
+});
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -123,16 +135,18 @@ app.get('/metrics', async (_req: Request, res: Response) => {
   }
 });
 
-// API Routes
+
+// API Routes - only mount at root now that pathRewrite works
 app.use('/', messageRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
 
-// 404 handler
+
+// App-level catch-all for unmatched requests
 app.use('*', (req, res) => {
   res.status(404).json({
-    error: 'Not Found',
+    error: 'Not Found (app-level)',
     message: 'The requested resource could not be found',
     path: req.originalUrl
   });

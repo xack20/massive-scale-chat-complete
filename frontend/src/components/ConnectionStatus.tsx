@@ -1,26 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getSocket } from '../lib/socket';
+import { Socket } from 'socket.io-client';
 
 interface ConnectionStatusProps {
   className?: string;
+  socket?: Socket | null;
+  connected?: boolean;
 }
 
-export default function ConnectionStatus({ className }: ConnectionStatusProps) {
-  const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+export default function ConnectionStatus({ className, socket, connected }: ConnectionStatusProps) {
+  const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');      
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const socket = getSocket();
-    
     if (!socket) {
       setStatus('disconnected');
       return;
     }
 
     const updateStatus = () => {
-      if (socket.connected) {
+      if (connected && socket.connected) {
         setStatus('connected');
         setError(null);
       } else if (socket.disconnected) {
@@ -54,7 +54,7 @@ export default function ConnectionStatus({ className }: ConnectionStatusProps) {
       socket.off('disconnect');
       socket.off('connect_error');
     };
-  }, []);
+  }, [socket, connected]);
 
   const getStatusColor = () => {
     switch (status) {
