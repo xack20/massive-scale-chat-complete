@@ -7,7 +7,11 @@ import { logger } from './logger';
 let redis: Redis | null = null;
 if (process.env.REDIS_URL) {
   try {
-    redis = new Redis(process.env.REDIS_URL, { lazyConnect: true });
+    const redisOptions: any = { lazyConnect: true };
+    if (process.env.REDIS_PASSWORD) {
+      redisOptions.password = process.env.REDIS_PASSWORD;
+    }
+    redis = new Redis(process.env.REDIS_URL, redisOptions);
     redis.on('error', err => logger.error('[redis] error', err));
     redis.connect().catch(err => logger.error('Failed to connect Redis', err));
   } catch (err) {

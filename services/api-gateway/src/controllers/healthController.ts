@@ -11,16 +11,23 @@ const prisma = new PrismaClient();
 let redis: Redis;
 try {
   const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
-  const parsed = new URL(redisUrl);
-  // Inject password if provided separately and not already in URL
-  if (process.env.REDIS_PASSWORD && !parsed.password) {
-    parsed.password = process.env.REDIS_PASSWORD;
+  const redisOptions: any = { lazyConnect: true };
+  
+  if (process.env.REDIS_PASSWORD) {
+    redisOptions.password = process.env.REDIS_PASSWORD;
   }
-  redis = new Redis(parsed.toString());
+  
+  redis = new Redis(redisUrl, redisOptions);
+  redis.on('error', err => logger.error('[redis] health controller error', err));
+  redis.connect().catch(err => logger.error('Health controller Redis connection failed', err));
 } catch (e) {
   logger.error('Failed to initialize Redis client', e);
-  // Fallback (will likely error if password required, but avoids crash on startup)
-  redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', process.env.REDIS_PASSWORD ? { password: process.env.REDIS_PASSWORD } as any : undefined);
+  // Fallback with password options
+  const fallbackOptions: any = { lazyConnect: true };
+  if (process.env.REDIS_PASSWORD) {
+    fallbackOptions.password = process.env.REDIS_PASSWORD;
+  }
+  redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', fallbackOptions);
 }
 
 export const healthController = {

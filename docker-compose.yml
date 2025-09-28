@@ -31,7 +31,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass chatpass123
     ports:
       - "6379:6379"
     volumes:
@@ -115,7 +114,6 @@ services:
       POSTGRES_URL: postgresql://chatuser:chatpass123@postgresql:5432/chatapp
       DATABASE_URL: postgresql://chatuser:chatpass123@postgresql:5432/chatapp
       REDIS_URL: redis://redis:6379
-      REDIS_PASSWORD: chatpass123
       JWT_SECRET: your-jwt-secret-here-change-in-production
       # Allow both direct frontend port and HAProxy root domain for browser origins
       CORS_ORIGIN: "http://localhost,http://localhost:3006,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3006,http://127.0.0.1:3000"
