@@ -17,12 +17,12 @@ async function main() {
     if (existing) continue;
     const hashed = await bcrypt.hash(u.password, 10);
     await prisma.user.create({ data: { email: u.email, username: u.username, password: hashed, fullName: u.fullName, role: u.role } });
-    console.log(`Seeded user ${u.email}`);
+    logger.info(`Seeded user ${u.email}`);
   }
 }
 
 main().catch(e => {
-  console.error(e);
+  logger.error(e);
   process.exit(1);
 }).finally(async () => {
   await prisma.$disconnect();

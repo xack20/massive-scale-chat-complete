@@ -1,2 +1,122 @@
-# grafana-dashboard.json
-# Created by automated audit system
+{
+  "dashboard": {
+    "id": null,
+    "title": "Massive Scale Chat - System Overview",
+    "tags": ["chat", "microservices", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (service)",
+            "legendFormat": "{{service}}"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service)",
+            "legendFormat": "{{service}}"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Active Connections",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(websocket_connections_active)"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Messages/sec",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(rate(messages_sent_total[1m]))"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "CPU Usage",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "{{service}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "{{service}}"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Response Time (p95)",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, http_request_duration_seconds_bucket)",
+            "legendFormat": "{{service}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Database Connections",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "pg_stat_activity_count",
+            "legendFormat": "PostgreSQL"
+          },
+          {
+            "expr": "mongodb_connections{state=\"current\"}",
+            "legendFormat": "MongoDB"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Kafka Lag",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "kafka_consumer_lag_sum",
+            "legendFormat": "{{topic}}"
+          }
+        ]
+      }
+    ]
+  }
+}
