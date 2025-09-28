@@ -6,15 +6,28 @@ import { getSocket } from '../lib/socket';
 import EmojiPicker from './EmojiPicker';
 import FileUpload from './FileUpload';
 
-export default function MessageInput() {
+interface MessageInputProps {
+  conversationId?: string;
+  onSendMessage?: (content: string) => void;
+}
+
+export default function MessageInput({ conversationId, onSendMessage }: MessageInputProps) {
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   const emitMessage = () => {
     if (!message.trim()) return;
-    const socket = getSocket();
-    socket?.emit('send-message', { content: message.trim() });
+    
+    if (onSendMessage) {
+      // Use the provided send message function
+      onSendMessage(message.trim());
+    } else {
+      // Fallback to socket emission for general chat
+      const socket = getSocket();
+      socket?.emit('send-message', { content: message.trim(), conversationId });
+    }
+    
     setMessage('');
     composerRef.current?.focus();
   };

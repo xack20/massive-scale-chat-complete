@@ -114,5 +114,61 @@ export const messageController = {
       logger.error('Error deleting message:', error);
       res.status(500).json({ error: 'Failed to delete message' });
     }
+  },
+
+  async createDirectConversation(req: Request, res: Response) {
+    try {
+      const { participantId } = req.body;
+      const currentUserId = req.headers['x-user-id'] as string;
+      const currentUserName = req.headers['x-user-name'] as string;
+
+      if (!participantId) {
+        return res.status(400).json({ error: 'participantId is required' });
+      }
+
+      if (participantId === currentUserId) {
+        return res.status(400).json({ error: 'Cannot create conversation with yourself' });
+      }
+
+      // Check if direct conversation already exists between these two users
+      const existingConversation = await Conversation.findOne({
+        type: 'direct',
+        'participants.userId': { $all: [currentUserId, participantId] },
+        'participants': { $size: 2 }
+      });
+
+      if (existingConversation) {
+        return res.json(existingConversation);
+      }
+
+      // Get participant user info (we'll need to call user service for this)
+      // For now, we'll create with basic info and update later
+      const conversation = await Conversation.create({
+        type: 'direct',
+        participants: [
+          {
+            userId: currentUserId,
+            userName: currentUserName,
+            role: 'member',
+            joinedAt: new Date(),
+            isActive: true
+          },
+          {
+            userId: participantId,
+            userName: `User-${participantId}`, // This should be fetched from user service
+            role: 'member',
+            joinedAt: new Date(),
+            isActive: true
+          }
+        ],
+        createdBy: currentUserId,
+        isActive: true
+      });
+
+      res.status(201).json(conversation);
+    } catch (error) {
+      logger.error('Error creating direct conversation:', error);
+      res.status(500).json({ error: 'Failed to create conversation' });
+    }
   }
 };

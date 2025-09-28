@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { cn, getInitials } from '../lib/utils';
@@ -13,6 +14,7 @@ export default function UserList({ className }: UserListProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -45,6 +47,30 @@ export default function UserList({ className }: UserListProps) {
     }
   };
 
+  const handleUserClick = async (targetUser: User) => {
+    try {
+      // Get current user from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      // Create or find direct conversation with this user
+      const response = await api.post('/messages/conversations/direct', {
+        participantId: targetUser.id
+      });
+      
+      const conversation = response.data;
+      
+      // Navigate to the conversation
+      router.push(`/chat?conversation=${conversation.id}`);
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+      setError('Failed to start conversation. Please try again.');
+    }
+  };
+
   const placeholders = Array.from({ length: 6 });
 
   return (
@@ -54,12 +80,12 @@ export default function UserList({ className }: UserListProps) {
         className
       )}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/40">Now chatting</p>
-          <h2 className="text-base sm:text-lg font-semibold text-white truncate">Active roster</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-white">Active roster</h2>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2">
           <span
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
@@ -74,8 +100,7 @@ export default function UserList({ className }: UserListProps) {
                 onlineCount ? 'bg-emerald-400 ring-2 ring-emerald-300/50 ring-offset-1 ring-offset-transparent' : 'bg-white/40'
               )}
             />
-            <span className="hidden sm:inline">{onlineCount ? `${onlineCount} online` : 'Invite your team'}</span>
-            <span className="sm:hidden">{onlineCount || '0'}</span>
+            <span>{onlineCount ? `${onlineCount} online` : 'Invite your team'}</span>
           </span>
           <button
             type="button"
@@ -83,7 +108,7 @@ export default function UserList({ className }: UserListProps) {
             onClick={() => {
               void fetchUsers();
             }}
-            className={cn('secondary-button h-8 px-2.5 text-xs sm:h-9 sm:px-3', loading && 'pointer-events-none opacity-60')}
+            className={cn('secondary-button h-8 px-2.5 text-xs', loading && 'pointer-events-none opacity-60')}
           >
             <span className="hidden sm:inline">Refresh</span>
             <span className="sm:hidden">↻</span>
@@ -118,9 +143,10 @@ export default function UserList({ className }: UserListProps) {
                 const presenceLabel = getPresenceLabel(user);
 
                 return (
-                  <div
+                  <button
                     key={user.id}
-                    className="group flex items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl border border-transparent bg-white/0 px-2.5 py-2.5 sm:px-3 sm:py-3 transition duration-200 hover:border-white/20 hover:bg-white/5"
+                    onClick={() => handleUserClick(user)}
+                    className="group flex items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl border border-transparent bg-white/0 px-2.5 py-2.5 sm:px-3 sm:py-3 transition duration-200 hover:border-white/20 hover:bg-white/5 w-full text-left cursor-pointer"
                   >
                     <div className="relative flex-shrink-0">
                       {user.avatar ? (
@@ -151,7 +177,7 @@ export default function UserList({ className }: UserListProps) {
                     {online && (
                       <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-200/80 flex-shrink-0">Live</span>
                     )}
-                  </div>
+                  </button>
                 );
               })
             : (

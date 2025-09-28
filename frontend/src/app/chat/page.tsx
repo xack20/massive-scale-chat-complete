@@ -1,19 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useMemo } from 'react';
 import MessageInput from '../../components/MessageInput';
 import MessageList from '../../components/MessageList';
 import UserList from '../../components/UserList';
 import { useAuth } from '../../hooks/useAuth';
+import { useChat } from '../../hooks/useChat';
 import { useSocket } from '../../hooks/useSocket';
 import { auth } from '../../lib/auth';
-import { Message } from '../../types';
 
-export default function ChatPage() {
+function ChatContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const conversationId = searchParams.get('conversation');
   const token = auth.getToken() || undefined;
-  const { socket, connected } = useSocket(token);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { connected } = useSocket(token);
+  const { messages, sendMessage } = useChat(conversationId || undefined);
 
   const greetingName = useMemo(() => {
     const displayName = user?.fullName || user?.username;
@@ -21,24 +24,11 @@ export default function ChatPage() {
     return displayName.split(' ')[0];
   }, [user?.fullName, user?.username]);
 
-  const headline = user ? `Welcome back, ${greetingName}` : 'Welcome to the lounge';
-
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewMessage = (message: Message) => {
-      setMessages((prev: Message[]) => {
-        const exists = prev.some((item) => item.id === message.id);
-        return exists ? prev : [...prev, message];
-      });
-    };
-
-    socket.on('new-message', handleNewMessage);
-
-    return () => {
-      socket.off('new-message', handleNewMessage);
-    };
-  }, [socket]);
+  const headline = conversationId 
+    ? 'Direct Message' 
+    : user 
+      ? `Welcome back, ${greetingName}` 
+      : 'Welcome to the lounge';
 
   return (
     <div className="relative min-h-screen overflow-hidden px-2 py-4 sm:px-4 sm:py-6 md:px-8 lg:px-12 lg:py-10">
@@ -82,7 +72,10 @@ export default function ChatPage() {
           </div>
 
           <div className="border-t border-white/10 px-4 py-4 sm:px-6 sm:py-6 md:px-8">
-            <MessageInput />
+            <MessageInput 
+              conversationId={conversationId || undefined}
+              onSendMessage={sendMessage}
+            />
           </div>
         </main>
 
@@ -91,5 +84,13 @@ export default function ChatPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center text-white">Loading...</div>}>
+      <ChatContent />
+    </Suspense>
   );
 }
