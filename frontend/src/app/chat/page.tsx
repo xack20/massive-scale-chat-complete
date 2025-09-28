@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo } from 'react';
 import ConnectionStatus from '../../components/ConnectionStatus';
@@ -50,6 +51,16 @@ function ChatContent() {
                 {messages.length ? `${messages.length} ${messages.length === 1 ? 'message' : 'messages'}` : 'No messages yet'}
               </span>
               <ConnectionStatus socket={socket} connected={connected} />
+              {user && (
+                <Link
+                  href="/profile"
+                  className="rounded-full border border-blue-400/30 bg-blue-500/15 px-3 py-1 text-xs font-semibold text-blue-200 transition-colors hover:border-blue-400/50 hover:bg-blue-500/25"
+                  title={`Profile for ${user.username}`}
+                >
+                  <span className="hidden sm:inline">Profile</span>
+                  <span className="sm:hidden">👤</span>
+                </Link>
+              )}
             </div>
           </header>
 

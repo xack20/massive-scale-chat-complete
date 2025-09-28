@@ -1,10 +1,11 @@
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { usePresence } from '../hooks/usePresence';
 import { api } from '../lib/api';
+import { auth } from '../lib/auth';
 import { cn, getInitials } from '../lib/utils';
 import { User } from '../types';
 
@@ -18,7 +19,7 @@ export default function UserList({ className }: UserListProps) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { onlineUsers } = usePresence();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -38,8 +39,13 @@ export default function UserList({ className }: UserListProps) {
     void fetchUsers();
   }, [fetchUsers]);
 
-  // Filter out the current user from the list
-  const filteredUsers = currentUser ? users.filter(u => u.id !== currentUser.id) : users;
+  // Filter out the current user from the list - always filter if we have a current user
+  // If auth is still loading, show empty list to prevent showing current user temporarily
+  const filteredUsers = React.useMemo(() => {
+    if (authLoading) return []; // Don't show any users while auth is loading
+    if (!currentUser) return users; // If no current user, show all (edge case)
+    return users.filter(u => u.id !== currentUser.id);
+  }, [users, currentUser, authLoading]);
   // Merge presence: treat user as online if their id appears in presence hook list
   const onlineCount = filteredUsers.reduce((acc, u) => acc + (onlineUsers.includes(u.id) ? 1 : 0), 0);
 
@@ -209,6 +215,45 @@ export default function UserList({ className }: UserListProps) {
               </div>
             )}
       </div>
+
+      {/* Current User Profile Section */}
+      {currentUser && (
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+            <div className="relative flex-shrink-0">
+              {currentUser.avatar ? (
+                <Image
+                  src={currentUser.avatar}
+                  alt={currentUser.fullName || currentUser.username}
+                  width={32}
+                  height={32}
+                  unoptimized
+                  className="h-8 w-8 rounded-full border border-white/15 object-cover"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10 text-sm font-semibold text-white/80">
+                  {getInitials(currentUser.fullName || currentUser.username)}
+                </div>
+              )}
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-slate-950/80 bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.45)]" />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-sm font-semibold text-white">
+                {currentUser.fullName || currentUser.username}
+              </span>
+              <span className="truncate text-xs text-emerald-200/80">You • Online</span>
+            </div>
+            <button
+              onClick={() => auth.logout()}
+              className="flex-shrink-0 rounded-lg border border-red-400/30 bg-red-500/15 px-2 py-1 text-xs font-semibold text-red-200 transition-colors hover:border-red-400/50 hover:bg-red-500/25"
+              title="Logout"
+            >
+              <span className="hidden sm:inline">Logout</span>
+              <span className="sm:hidden">↗</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
