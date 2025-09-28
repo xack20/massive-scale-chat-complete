@@ -1,20 +1,41 @@
 "use client";
 
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { E2EEncryption, KeyManager } from '../lib/e2eEncryption';
 import { getSocket } from '../lib/socket';
 import EmojiPicker from './EmojiPicker';
 import FileUpload from './FileUpload';
 
-interface MessageInputProps {
-  conversationId?: string;
-  onSendMessage?: (content: string) => void;
+interface EncryptionData {
+  algorithm?: string;
+  keyId?: string;
 }
 
-export default function MessageInput({ conversationId, onSendMessage }: MessageInputProps) {
+interface MessageInputProps {
+  conversationId?: string;
+  onSendMessage?: (content: string, isEncrypted?: boolean, encryptionData?: EncryptionData) => void;
+  recipientUserId?: string;
+  encryptionEnabled?: boolean;
+}
+
+export default function MessageInput({ 
+  conversationId, 
+  onSendMessage, 
+  recipientUserId,
+  encryptionEnabled = false 
+}: MessageInputProps) {
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
+  const [isEncryptionReady, setIsEncryptionReady] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    // Check if encryption is available and keys are set up
+    if (encryptionEnabled && E2EEncryption.isSupported() && KeyManager.hasKeys()) {
+      setIsEncryptionReady(true);
+    }
+  }, [encryptionEnabled]);
 
   const emitMessage = async () => {
     if (!message.trim()) return;
@@ -23,14 +44,44 @@ export default function MessageInput({ conversationId, onSendMessage }: MessageI
     setMessage(''); // Clear immediately for better UX
     
     try {
+      let finalContent = messageContent;
+      let isEncrypted = false;
+      let encryptionData: EncryptionData | undefined;
+
+      // Encrypt message if encryption is enabled and ready
+      if (encryptionEnabled && isEncryptionReady && recipientUserId) {
+        try {
+          const recipientPublicKey = KeyManager.getPublicKey(recipientUserId);
+          if (recipientPublicKey) {
+            const publicKey = await E2EEncryption.importPublicKey(recipientPublicKey);
+            const encrypted = await E2EEncryption.encryptMessage(messageContent, publicKey);
+            
+            finalContent = JSON.stringify(encrypted);
+            isEncrypted = true;
+            encryptionData = {
+              algorithm: encrypted.algorithm,
+              keyId: encrypted.keyId
+            };
+          }
+        } catch (encryptionError) {
+          console.error('Failed to encrypt message:', encryptionError);
+          // Continue with unencrypted message
+        }
+      }
+
       if (onSendMessage) {
         // Use the provided send message function
-        await onSendMessage(messageContent);
+        await onSendMessage(finalContent, isEncrypted, encryptionData);
       } else {
         // Fallback to socket emission for general chat
         const socket = getSocket();
         if (socket && socket.connected) {
-          socket.emit('send-message', { content: messageContent, conversationId });
+          socket.emit('send-message', { 
+            content: finalContent, 
+            conversationId,
+            isEncrypted,
+            ...encryptionData
+          });
         } else {
           console.warn('Socket not connected for message:', messageContent);
         }

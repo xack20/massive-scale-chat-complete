@@ -9,6 +9,7 @@ import MessageInput from '../../components/MessageInput';
 import MessageList from '../../components/MessageList';
 import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
+import { useEncryption } from '../../hooks/useEncryption';
 import { useSocket } from '../../hooks/useSocket';
 import { auth } from '../../lib/auth';
 
@@ -16,9 +17,11 @@ function ChatContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get('conversation');
+  const recipientUserId = searchParams.get('recipient');
   const token = auth.getToken() || undefined;
   const { socket, connected } = useSocket(token);
   const { messages, sendMessage } = useChat(conversationId || undefined);
+  const { isSupported: encryptionSupported, isReady: encryptionReady } = useEncryption();
 
   const greetingName = useMemo(() => {
     const displayName = user?.fullName || user?.username;
@@ -72,6 +75,8 @@ function ChatContent() {
             <MessageInput
               conversationId={conversationId || undefined}
               onSendMessage={sendMessage}
+              recipientUserId={recipientUserId || undefined}
+              encryptionEnabled={encryptionSupported && encryptionReady}
             />
           </div>
         </main>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { E2EEncryption, EncryptedMessage, KeyManager } from '../lib/e2eEncryption';
 import { getSocket } from '../lib/socket';
 import { Message } from '../types';
 
@@ -15,6 +16,32 @@ const normalizeMessage = (m: RawMessage): Message => {
     return { ...(clone as Omit<Message,'id'>), id: mongoId };
   }
   return m as Message;
+};
+
+// Decrypt message if it's encrypted
+const decryptMessageIfNeeded = async (message: Message): Promise<Message> => {
+  // Check if message has encryption metadata
+  const metadata = (message as Message & { metadata?: { encrypted?: boolean } }).metadata;
+  if (!metadata?.encrypted) {
+    return message;
+  }
+
+  try {
+    // Check if we have the necessary keys
+    const keyPair = await KeyManager.getStoredKeyPair();
+    if (!keyPair) {
+      return { ...message, content: '🔐 Unable to decrypt (no private key)' };
+    }
+
+    // Try to decrypt the message
+    const encryptedData: EncryptedMessage = JSON.parse(message.content);
+    const decrypted = await E2EEncryption.decryptMessage(encryptedData, keyPair.privateKey);
+    
+    return { ...message, content: decrypted };
+  } catch (error) {
+    console.error('Failed to decrypt message:', error);
+    return { ...message, content: '🔐 Failed to decrypt message' };
+  }
 };
 
 interface ApiFetchResponse {
@@ -43,12 +70,18 @@ export function useChat(conversationId?: string) {
       const data = response.data as ApiFetchResponse | RawMessage[];
       const list: RawMessage[] = Array.isArray(data) ? data : (data.messages as RawMessage[] || []);
       const normalized: Message[] = list.map(normalizeMessage);
+      
+      // Decrypt messages if needed
+      const decrypted: Message[] = await Promise.all(
+        normalized.map(msg => decryptMessageIfNeeded(msg))
+      );
+      
       if (pageNum === 1) {
         // Sort chronologically (oldest first) for initial load
-        setMessages(normalized.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+        setMessages(decrypted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
       } else {
         setMessages(prev => {
-          const combined = [...prev, ...normalized];
+          const combined = [...prev, ...decrypted];
           return combined.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         });
       }
@@ -154,7 +187,12 @@ export function useChat(conversationId?: string) {
     };
   }, [conversationId]);
 
-  const sendMessage = useCallback(async (content: string, attachments?: unknown[]) => {
+  const sendMessage = useCallback(async (
+    content: string, 
+    isEncrypted?: boolean, 
+    encryptionData?: { algorithm?: string; keyId?: string },
+    attachments?: unknown[]
+  ) => {
     if (!conversationId) {
       console.error('No conversation ID provided');
       return;
@@ -166,7 +204,7 @@ export function useChat(conversationId?: string) {
       conversationId,
       senderId: 'me',
       senderName: 'Me',
-      content,
+      content: isEncrypted ? '🔐 Encrypted message' : content, // Show indicator for encrypted messages
       type: attachments?.length ? 'file' : 'text',
       attachments: attachments as Message['attachments'],
       status: 'sending',
@@ -187,7 +225,14 @@ export function useChat(conversationId?: string) {
             fallbackToAPI();
           }, 5000);
           
-          socket.emit('send-message', { conversationId, content, attachments, type: optimistic.type }, (resp: { error?: string; message?: RawMessage } ) => {
+          socket.emit('send-message', { 
+            conversationId, 
+            content, 
+            attachments, 
+            type: optimistic.type,
+            isEncrypted,
+            ...encryptionData
+          }, (resp: { error?: string; message?: RawMessage } ) => {
             clearTimeout(timeout);
             if (resp && resp.error) {
               console.error('Socket error:', resp.error);
@@ -210,7 +255,9 @@ export function useChat(conversationId?: string) {
                 conversationId,
                 content,
                 attachments,
-                type: optimistic.type
+                type: optimistic.type,
+                isEncrypted,
+                ...encryptionData
               });
               const real = normalizeMessage(response.data);
               setMessages(prev => prev.map(m => (m.id === tempId ? real : m)));
@@ -232,7 +279,9 @@ export function useChat(conversationId?: string) {
           conversationId,
           content,
           attachments,
-          type: optimistic.type
+          type: optimistic.type,
+          isEncrypted,
+          ...encryptionData
         });
         const real = normalizeMessage(response.data);
         setMessages(prev => prev.map(m => (m.id === tempId ? real : m)));

@@ -3,24 +3,55 @@ import { Conversation } from '../models/conversation';
 import { Message } from '../models/message';
 import { publishToKafka } from '../services/kafkaService';
 import { getSocketIO } from '../services/socketRegistry';
+import { HuffmanCompressor } from '../utils/huffmanCompression';
 import { logger } from '../utils/logger';
 
 export const messageController = {
   async sendMessage(req: Request, res: Response) {
     try {
-      const { conversationId, content, type = 'text', attachments, replyTo } = req.body;
+      const { conversationId, content, type = 'text', attachments, replyTo, isEncrypted = false } = req.body;
       const userId = req.headers['x-user-id'] as string;
       const userName = req.headers['x-user-name'] as string;
+
+      let processedContent = content;
+      const metadata: any = {};
+
+      // Apply compression for text messages (if not encrypted)
+      if (type === 'text' && !isEncrypted && content && content.length > 50) {
+        try {
+          const compressionResult = HuffmanCompressor.compress(content);
+          if (compressionResult.compressionRatio > 0.1) { // Only compress if we save at least 10%
+            processedContent = compressionResult.compressedData;
+            metadata.compressed = true;
+            metadata.compressionRatio = compressionResult.compressionRatio;
+            metadata.originalSize = compressionResult.originalSize;
+            metadata.compressedSize = compressionResult.compressedSize;
+            metadata.huffmanTree = compressionResult.tree;
+            
+            logger.info(`Message compressed: ${compressionResult.originalSize} -> ${compressionResult.compressedSize} bytes (${(compressionResult.compressionRatio * 100).toFixed(1)}% saved)`);
+          }
+        } catch (compressionError) {
+          logger.warn('Failed to compress message, using original:', compressionError);
+        }
+      }
+
+      // Set encryption metadata if provided
+      if (isEncrypted) {
+        metadata.encrypted = true;
+        metadata.algorithm = req.body.algorithm || 'RSA-OAEP+AES-GCM';
+        metadata.keyId = req.body.keyId;
+      }
 
       const message = await Message.create({
         conversationId,
         senderId: userId,
         senderName: userName,
-        content,
+        content: processedContent,
         type,
         attachments,
         replyTo,
-        status: 'sent'
+        status: 'sent',
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined
       });
 
       await Conversation.findByIdAndUpdate(conversationId, {
@@ -58,7 +89,42 @@ export const messageController = {
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit));
 
-      res.json(messages);
+      // Process messages for decompression
+      const processedMessages = messages.map(message => {
+        const messageObj = message.toObject();
+        
+        // Decompress if message is compressed
+        if (messageObj.metadata?.compressed && messageObj.metadata?.huffmanTree) {
+          try {
+            const decompressed = HuffmanCompressor.decompress(
+              messageObj.content,
+              messageObj.metadata.huffmanTree
+            );
+            messageObj.content = decompressed;
+            
+            // Remove compression metadata from client response for cleaner API
+            if (messageObj.metadata) {
+              delete messageObj.metadata.compressed;
+              delete messageObj.metadata.huffmanTree;
+              delete messageObj.metadata.compressionRatio;
+              delete messageObj.metadata.originalSize;
+              delete messageObj.metadata.compressedSize;
+              
+              // Remove metadata object if empty after cleaning
+              if (Object.keys(messageObj.metadata).length === 0) {
+                delete messageObj.metadata;
+              }
+            }
+          } catch (decompressionError) {
+            logger.error('Failed to decompress message:', decompressionError);
+            // Return original content if decompression fails
+          }
+        }
+        
+        return messageObj;
+      });
+
+      res.json(processedMessages);
     } catch (error) {
       logger.error('Error fetching messages:', error);
       res.status(500).json({ error: 'Failed to fetch messages' });
