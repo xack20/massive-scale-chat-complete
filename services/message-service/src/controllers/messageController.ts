@@ -116,13 +116,99 @@ export const messageController = {
     }
   },
 
-  async createDirectConversation(req: Request, res: Response) {
-    try {
-      const { participantId } = req.body;
+    async getUserConversations(req: Request, res: Response) {
+      try {
+        const userId = req.headers['x-user-id'] as string;
+        const { page = 1, limit = 20 } = req.query;
+
+        if (!userId) {
+          return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        logger.info('Fetching conversations for user', { userId });
+
+        const conversations = await Conversation.find({
+          'participants.userId': userId,
+          isArchived: false
+        })
+          .sort({ 'lastMessage.timestamp': -1, updatedAt: -1 })
+          .limit(Number(limit))
+          .skip((Number(page) - 1) * Number(limit))
+          .lean();
+
+        // Get only conversations where the user has had messages
+        const conversationsWithMessages = [];
+        for (const conv of conversations) {
+          const messageCount = await Message.countDocuments({
+            conversationId: conv._id,
+            deletedAt: null
+          });
+        
+          if (messageCount > 0) {
+            // Get the other participant for direct conversations
+            if (conv.type === 'direct') {
+              const otherParticipant = conv.participants.find(p => p.userId !== userId);
+              if (otherParticipant) {
+                // Fetch real user data from user service if the participant name looks like a placeholder
+                let participantName = otherParticipant.userName;
+                if (participantName && (participantName.startsWith('User-') || participantName.includes('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'))) {
+                  try {
+                    // Try to fetch user data from user service
+                    const userResponse = await fetch(`http://api-gateway:3000/api/users/${otherParticipant.userId}`, {
+                      headers: {
+                        'Authorization': req.headers.authorization || '',
+                        'x-user-id': userId
+                      }
+                    });
+                    if (userResponse.ok) {
+                      const userData = await userResponse.json() as { fullName?: string; username?: string; email?: string };
+                      participantName = userData.fullName || userData.username || userData.email || participantName;
+                    }
+                  } catch (error: any) {
+                    logger.warn('Failed to fetch user data for participant', { participantId: otherParticipant.userId, error: error?.message || 'Unknown error' });
+                  }
+                }
+                
+                conversationsWithMessages.push({
+                  ...conv,
+                  id: conv._id.toString(), // Ensure id field is present
+                  otherParticipant: {
+                    userId: otherParticipant.userId,
+                    userName: participantName,
+                    userAvatar: otherParticipant.userAvatar
+                  },
+                  messageCount
+                });
+              }
+            } else {
+              conversationsWithMessages.push({
+                ...conv,
+                id: conv._id.toString(), // Ensure id field is present
+                messageCount
+              });
+            }
+          }
+        }
+
+        logger.info('Returning conversations', { count: conversationsWithMessages.length, conversationIds: conversationsWithMessages.map(c => c.id) });
+
+        res.json({
+          conversations: conversationsWithMessages,
+          total: conversationsWithMessages.length
+        });
+      } catch (error: any) {
+        logger.error('Error fetching user conversations:', error);
+        res.status(500).json({ error: 'Failed to fetch conversations' });
+      }
+    },
+
+    async createDirectConversation(req: Request, res: Response) {
+      try {
+      const { participantId, participantName } = req.body;
       const currentUserId = req.headers['x-user-id'] as string;
       const currentUserName = req.headers['x-user-name'] as string;
 
-      logger.info('Creating direct conversation', { currentUserId, participantId, currentUserName });
+      logger.info('Creating direct conversation', { currentUserId, participantId, currentUserName, participantName });
 
       if (!participantId) {
         return res.status(400).json({ error: 'participantId is required' });
@@ -145,7 +231,7 @@ export const messageController = {
         return res.json(existingConversation);
       }
 
-      // Create new conversation
+      // Create new conversation with proper user names
       const conversation = await Conversation.create({
         type: 'direct',
         participants: [
@@ -158,7 +244,7 @@ export const messageController = {
           },
           {
             userId: participantId,
-            userName: `User-${participantId}`, // This should be fetched from user service
+            userName: participantName || `User-${participantId.slice(0, 8)}`, // Use provided name or short fallback
             role: 'member',
             joinedAt: new Date(),
             isActive: true

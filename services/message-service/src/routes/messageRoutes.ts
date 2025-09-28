@@ -10,6 +10,7 @@ router.use(authMiddleware);
 
 // Clean routes without prefix
 router.post('/', messageController.sendMessage);
+router.get('/conversations', messageController.getUserConversations);
 router.post('/conversations/direct', messageController.createDirectConversation);
 router.get('/conversation/:conversationId', messageController.getMessages);
 router.put('/:id', messageController.updateMessage);

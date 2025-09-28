@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo } from 'react';
 import ConnectionStatus from '../../components/ConnectionStatus';
+import ConversationList from '../../components/ConversationList';
 import MessageInput from '../../components/MessageInput';
 import MessageList from '../../components/MessageList';
-import UserList from '../../components/UserList';
 import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
 import { useSocket } from '../../hooks/useSocket';
@@ -77,7 +77,7 @@ function ChatContent() {
         </main>
 
         <aside className="w-full lg:w-80 lg:flex-shrink-0 order-first lg:order-last">
-          <UserList className="h-64 sm:h-80 lg:h-full" />
+         <ConversationList className="h-64 sm:h-80 lg:h-full" />
         </aside>
       </div>
     </div>
