@@ -12,6 +12,8 @@ module.exports = defineConfig({
   testDir: './tests',
   timeout: 30000,
   expect: { timeout: 10000 },
+  // Ensure our custom global setup runs (was previously present but not explicitly wired here)
+  globalSetup: require.resolve('./tests/e2e/global-setup.ts'),
   use: {
     baseURL: BASE_URL,
     screenshot: 'only-on-failure',

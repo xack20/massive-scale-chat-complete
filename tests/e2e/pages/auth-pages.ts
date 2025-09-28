@@ -86,7 +86,22 @@ export class RegisterPage {
       if (!disabled) break;
       await this.page.waitForTimeout(100);
     }
-    await this.registerButton.click();
+    // Capture the network response for diagnostics
+    const [response] = await Promise.all([
+      this.page.waitForResponse(r => /\/api\/auth\/register$/.test(new URL(r.url()).pathname), { timeout: 8000 }).catch(() => null),
+      this.registerButton.click()
+    ]);
+    if (!response) {
+      // No network call observed; throw early to help debugging
+      throw new Error('Register button clicked but no /api/auth/register network call was observed within 8s');
+    }
+    const status = response.status();
+    if (status !== 201 && status !== 409) {
+      // Extract body text (best effort)
+      let body: any = null;
+      try { body = await response.json(); } catch { /* ignore */ }
+      throw new Error(`Registration request failed: HTTP ${status} url=${response.url()} body=${JSON.stringify(body)}`);
+    }
   }
 
   async expectRegistrationSuccess() {
@@ -95,6 +110,11 @@ export class RegisterPage {
     while (Date.now() < deadline) {
       if (await this.successMessage.first().isVisible().catch(() => false)) break;
       if (/\/chat/.test(this.page.url())) break;
+      // If an error message appears, fail fast with its content
+      if (await this.errorMessage.first().isVisible().catch(() => false)) {
+        const errTxt = await this.errorMessage.first().innerText().catch(() => 'Unknown error');
+        throw new Error(`Registration error displayed: ${errTxt}`);
+      }
       // If button returned to enabled state without success yet, keep polling
       await this.page.waitForTimeout(200);
     }

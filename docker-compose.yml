@@ -107,6 +107,10 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
+      # Disable auth rate limiting in local/dev test runs to prevent 429 in E2E
+      DISABLE_AUTH_RATE_LIMIT: "true"
+      AUTH_RATE_LIMIT_MAX_NONPROD: 10000
+      RATE_LIMIT_MAX_REQUESTS: 10000
       # Prisma in api-gateway expects DATABASE_URL (schema.prisma). POSTGRES_URL left for backward compatibility.
       POSTGRES_URL: postgresql://chatuser:chatpass123@postgresql:5432/chatapp
       DATABASE_URL: postgresql://chatuser:chatpass123@postgresql:5432/chatapp

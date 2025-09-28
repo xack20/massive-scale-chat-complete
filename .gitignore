@@ -60,3 +60,4 @@ package-lock.json
 .next
 playwright-report
 /tests/reports
+tmp-reg-debug
