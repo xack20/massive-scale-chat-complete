@@ -1,7 +1,6 @@
-// Initialize express app and config
-const app: Application = express();
-const PORT = process.env.MESSAGE_SERVICE_PORT || 3002;
-const KAFKA_DISABLED = (process.env.KAFKA_DISABLED || 'false').toLowerCase() === 'true';
+// NOTE: All imports must come first to avoid runtime ReferenceError where express() is
+// invoked before the module binding is initialized. The previous ordering placed
+// executable code before imports which broke CommonJS transpilation.
 import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -10,6 +9,11 @@ import helmet from 'helmet';
 import http from 'http';
 import morgan from 'morgan';
 import { Server } from 'socket.io';
+
+// Initialize express app and config (must be after imports)
+const app: Application = express();
+const PORT = process.env.MESSAGE_SERVICE_PORT || 3002;
+const KAFKA_DISABLED = (process.env.KAFKA_DISABLED || 'false').toLowerCase() === 'true';
 
 // Load environment variables
 dotenv.config({ path: '../../.env' });
@@ -65,7 +69,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+    origin: (process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000','http://localhost:3006']),
     credentials: true
   },
   transports: ['websocket', 'polling']
@@ -74,7 +78,8 @@ const io = new Server(server, {
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+  // Include frontend dev origin (3006) by default if env not provided
+  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000','http://localhost:3006'],
   credentials: true
 }));
 

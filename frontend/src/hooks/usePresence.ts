@@ -1,18 +1,31 @@
 import { useEffect, useState } from 'react';
-import { getSocket } from '../lib/socket';
+import { getPresenceSocket } from '../lib/socket';
+
+interface PresenceUpdate {
+	userId?: string;
+	status?: 'online' | 'offline' | string;
+}
 
 export function usePresence() {
 	const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
 	useEffect(() => {
-		const socket = getSocket();
+		const socket = getPresenceSocket();
 		if (!socket) return;
 
-		const handlePresence = (users: string[]) => setOnlineUsers(users);
-		socket.on('presence:update', handlePresence);
-		socket.emit('presence:subscribe');
+		// presence-service emits individual updates { userId, status }
+		// We will maintain a simple set of userIds reported online.
+		const onlineSet = new Set<string>();
+		const handlePresenceUpdate = (payload: PresenceUpdate) => {
+			const { userId, status } = payload || {};
+			if (userId && status) {
+				if (status === 'online') onlineSet.add(userId); else onlineSet.delete(userId);
+				setOnlineUsers(Array.from(onlineSet));
+			}
+		};
+		socket.on('presence-update', handlePresenceUpdate);
 		return () => {
-			socket.off('presence:update', handlePresence);
+			socket.off('presence-update', handlePresenceUpdate);
 		};
 	}, []);
 

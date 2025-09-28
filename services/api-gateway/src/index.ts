@@ -24,10 +24,7 @@ app.get('/status', (req, res) => {
   res.json({ ok: true });
 });
 
-// Emergency test route - placed FIRST to bypass any middleware
-app.get('/emergency-test', (req, res) => {
-  res.json({ status: 'emergency route working', timestamp: new Date().toISOString() });
-});
+// (Removed temporary /emergency-test route used during debugging)
 
 // Security middleware
 app.use(helmet({
@@ -115,16 +112,12 @@ app.get('/test-direct', (req, res) => {
   res.json({ message: 'Direct test route working', path: req.originalUrl, timestamp: new Date().toISOString() });
 });
 
-// Simple test route to verify routing works
-app.get('/api/messages/test', (req, res) => {
-  logger.info('Test route hit successfully', { service: 'api-gateway' });
-  res.json({ message: 'API Gateway messages route is working', path: req.originalUrl });
-});
+// (Removed temporary /api/messages/test route used during debugging)
 
 // Messages service proxy - with body rewriting for Express parsed bodies
 logger.info('Registering proxy: /api/messages -> http://message-service:3002');
 
-app.use('/api/messages', createProxyMiddleware({
+app.use('/api/messages', authMiddleware, createProxyMiddleware({
   target: 'http://message-service:3002',
   changeOrigin: true,
   pathRewrite: {
@@ -134,10 +127,6 @@ app.use('/api/messages', createProxyMiddleware({
   proxyTimeout: 30000,
   logLevel: 'debug',
   onProxyReq: (proxyReq, req) => {
-    // Add authentication headers for testing
-    proxyReq.setHeader('x-user-id', 'test_user_1');
-    proxyReq.setHeader('x-user-name', 'testuser');
-    
     logger.info(`PROXY: ${req.method} ${req.originalUrl} -> ${proxyReq.path}`, { service: 'api-gateway' });
     
     // Handle body rewriting for POST/PUT requests when body has been parsed by Express
@@ -166,17 +155,14 @@ app.use('/api/messages', createProxyMiddleware({
   }
 }));
 
-// Users service proxy
-logger.info('Registering proxy: /api/users -> http://user-service:3001');
+// Users service proxy (do NOT rewrite path so user-service keeping /api/users mount works)
+logger.info('Registering proxy: /api/users -> http://user-service:3001 (no path rewrite)');
 app.use('/api/users', authMiddleware, createProxyMiddleware({
   target: process.env.USER_SERVICE_URL || 'http://user-service:3001',
   changeOrigin: true,
   logLevel: 'info' as const,
   timeout: 10000,
-  proxyTimeout: 10000,
-  pathRewrite: {
-    '^/api/users': ''
-  }
+  proxyTimeout: 10000
 }));
 
 // Files service proxy

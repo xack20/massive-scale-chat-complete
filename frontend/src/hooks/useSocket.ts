@@ -8,7 +8,7 @@ export const useSocket = (token?: string) => {
 
   useEffect(() => {
     if (token) {
-      const socketInstance = initSocket(token);
+  const socketInstance = initSocket(token, { presence: true });
       
       socketInstance.on('connect', () => {
         setConnected(true);

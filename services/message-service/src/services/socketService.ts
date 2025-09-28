@@ -39,7 +39,8 @@ interface AuthPayload {
 
 const verifyToken = (token: string): AuthPayload | null => {
   try {
-    const secret = process.env.JWT_SECRET || 'devsecret';
+  // Use unified secret fallback matching api-gateway auth middleware
+  const secret = process.env.JWT_SECRET || 'dev-secret';
     return jwt.verify(token, secret) as AuthPayload;
   } catch (err) {
     logger.warn(`Socket auth token invalid: ${(err as Error).message}`);

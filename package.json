@@ -21,6 +21,7 @@
     "test:ui": "playwright test tests/ui-issues.test.js",
     "test:ui:debug": "playwright test tests/ui-issues.test.js --debug",
     "test:ui:report": "playwright show-report"
+    ,"test:e2e": "playwright test tests/e2e"
   },
   "keywords": [
     "chat",

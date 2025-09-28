@@ -30,8 +30,7 @@ export const authMiddleware = async (
       '/api/users/register',
       '/api/health', 
       '/socket.io', 
-      '/ws',
-      '/api/messages'  // Temporarily allow messages without auth for testing
+      '/ws'
     ];
     
     // Also allow health endpoints for all services

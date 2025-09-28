@@ -2,6 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { usePresence } from '../hooks/usePresence';
 import { api } from '../lib/api';
 import { cn, getInitials } from '../lib/utils';
 import { User } from '../types';
@@ -15,6 +16,7 @@ export default function UserList({ className }: UserListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { onlineUsers } = usePresence();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -34,7 +36,8 @@ export default function UserList({ className }: UserListProps) {
     void fetchUsers();
   }, [fetchUsers]);
 
-  const onlineCount = users.filter((user: User) => Boolean(user.isOnline)).length;
+  // Merge presence: treat user as online if their id appears in presence hook list
+  const onlineCount = users.reduce((acc, u) => acc + (onlineUsers.includes(u.id) ? 1 : 0), 0);
 
   const getPresenceLabel = (user: User) => {
     if (user.isOnline) return 'Online now';
@@ -154,7 +157,7 @@ export default function UserList({ className }: UserListProps) {
           : users.length > 0
             ? users.map((user: User) => {
                 const displayName = user.fullName || user.username;
-                const online = Boolean(user.isOnline);
+                const online = onlineUsers.includes(user.id);
                 const presenceLabel = getPresenceLabel(user);
 
                 return (
