@@ -1,7 +1,9 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../lib/api';
 
@@ -14,7 +16,8 @@ export default function ProfilePage() {
     fullName: '',
     username: '',
     bio: '',
-    email: ''
+    email: '',
+    avatar: ''
   });
   const [avatar, setAvatar] = useState<File | null>(null);
   const [message, setMessage] = useState('');
@@ -59,8 +62,9 @@ export default function ProfilePage() {
       setMessage('Profile updated successfully!');
       setEditing(false);
       fetchProfile();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || errorMessage);
     } finally {
       setLoading(false);
     }
@@ -84,8 +88,9 @@ export default function ProfilePage() {
       await api.delete('/users/account', { data: { password } });
       logout();
       router.push('/');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete account');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete account';
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || errorMessage);
     }
   };
 
@@ -120,10 +125,12 @@ export default function ProfilePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex items-center space-x-6">
               <div className="shrink-0">
-                <img
+                <Image
                   className="h-20 w-20 rounded-full object-cover"
                   src={formData.avatar || '/default-avatar.png'}
                   alt="Profile"
+                  width={80}
+                  height={80}
                 />
               </div>
               {editing && (

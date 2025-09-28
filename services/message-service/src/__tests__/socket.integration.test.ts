@@ -36,7 +36,7 @@ describe('Socket.IO message flow', () => {
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Socket connect timeout')), 5000);
       socket.on('connect', () => { clearTimeout(timer); resolve(); });
-      socket.on('connect_error', err => { clearTimeout(timer); reject(err); });
+      socket.on('connect_error', (err: any) => { clearTimeout(timer); reject(err); });
     });
   });
 
@@ -51,7 +51,7 @@ describe('Socket.IO message flow', () => {
     const content = 'Hello over socket';
 
     const received = new Promise<any>((resolve) => {
-      socket.on('new-message', (msg) => {
+      socket.on('new-message', (msg: any) => {
         if (msg.conversationId === conversationId && msg.content === content) {
           resolve(msg);
         }
@@ -88,7 +88,7 @@ describe('Socket.IO message flow', () => {
 
     // Listen for message update
     const updateReceived = new Promise<any>((resolve) => {
-      socket.on('message-updated', (msg) => {
+      socket.on('message-updated', (msg: any) => {
         if (msg._id === messageId && msg.content === editedContent) {
           resolve(msg);
         }
@@ -123,7 +123,7 @@ describe('Socket.IO message flow', () => {
 
     // Listen for message deletion
     const deleteReceived = new Promise<any>((resolve) => {
-      socket.on('message-deleted', (payload) => {
+      socket.on('message-deleted', (payload: any) => {
         if (payload.messageId === messageId) {
           resolve(payload);
         }
@@ -177,7 +177,7 @@ describe('Socket.IO message flow', () => {
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Socket2 connect timeout')), 5000);
       socket2.on('connect', () => { clearTimeout(timer); resolve(); });
-      socket2.on('connect_error', err => { clearTimeout(timer); reject(err); });
+      socket2.on('connect_error', (err: any) => { clearTimeout(timer); reject(err); });
     });
 
     // Add second user to conversation
@@ -189,7 +189,7 @@ describe('Socket.IO message flow', () => {
 
     // Listen for user joined event on first socket
     const userJoined = new Promise<any>((resolve) => {
-      socket.on('user-joined', (data) => {
+      socket.on('user-joined', (data: any) => {
         if (data.userId === user2.id) {
           resolve(data);
         }
@@ -212,7 +212,7 @@ describe('Socket.IO message flow', () => {
 
   test('should handle typing indicators', async () => {
     const typingReceived = new Promise<any>((resolve) => {
-      socket.on('user-typing', (data) => {
+      socket.on('user-typing', (data: any) => {
         if (data.userId === user.id && data.isTyping === true) {
           resolve(data);
         }
