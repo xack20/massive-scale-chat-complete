@@ -22,6 +22,10 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  // Change password state
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+  const [pwLoading, setPwLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -91,6 +95,35 @@ export default function ProfilePage() {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete account';
       setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || errorMessage);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(passwordForm.newPassword)) {
+      setError('Password must be at least 8 chars, include upper, lower and number');
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await api.post('/users/change-password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+      setMessage('Password changed successfully');
+      setChangingPassword(false);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to change password';
+      setError(errorMessage);
+    } finally {
+      setPwLoading(false);
     }
   };
 
@@ -220,6 +253,72 @@ export default function ProfilePage() {
             )}
           </form>
 
+          {/* Change Password Section */}
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Change Password</h2>
+              {!changingPassword && (
+                <button
+                  onClick={() => setChangingPassword(true)}
+                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            {changingPassword && (
+              <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                  <input
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">New Password</label>
+                  <input
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={passwordForm.confirmNewPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmNewPassword: e.target.value })}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => { setChangingPassword(false); setPasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' }); }}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={pwLoading}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {pwLoading ? 'Updating...' : 'Update Password'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {/* Danger Zone */}
           <div className="mt-8 pt-8 border-t border-gray-200">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Danger Zone</h2>
             <button

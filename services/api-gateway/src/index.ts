@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { Request, Response } from 'express';
@@ -72,6 +73,7 @@ app.use(limiter);
 // Global body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 // Debug middleware to log request body
 app.use('/api/messages', (req, res, next) => {
@@ -83,6 +85,7 @@ app.use('/api/messages', (req, res, next) => {
 app.post('/api/auth/register', authController.register);
 app.post('/api/auth/login', authController.login);
 app.post('/api/auth/refresh', authController.refreshToken);
+app.post('/api/auth/logout', authController.logout);
 
 // Health checks
 app.get('/health', (_req: Request, res: Response) => {

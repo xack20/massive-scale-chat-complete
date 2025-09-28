@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger';
+import { isTokenBlacklisted } from '../utils/tokenBlacklist';
 
 interface JwtPayload {
   userId: string;
@@ -55,6 +56,14 @@ export const authMiddleware = async (
 
     // Verify token
     const jwtSecret = process.env.JWT_SECRET || 'dev-secret';
+
+    // Check blacklist first
+    if (await isTokenBlacklisted(token)) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Token has been revoked'
+      });
+    }
 
     const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
     

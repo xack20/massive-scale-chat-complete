@@ -1,9 +1,19 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { body, param, query } from 'express-validator';
 import { userController } from '../controllers/userController';
 import { authMiddleware } from '../middleware/auth';
-import { validateRequest } from '../middleware/validateRequest';
 import { upload } from '../middleware/upload';
-import { body, param, query } from 'express-validator';
+import { validateRequest } from '../middleware/validateRequest';
+
+// Specific rate limiter for sensitive endpoints (password change)
+const passwordChangeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many password change attempts, please try later.'
+});
 
 const router = Router();
 
@@ -35,6 +45,7 @@ router.post('/avatar',
 
 // Change password
 router.post('/change-password',
+  passwordChangeLimiter,
   [
     body('currentPassword').isString().notEmpty(),
     body('newPassword').isString().isLength({ min: 8 })

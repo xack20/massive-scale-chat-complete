@@ -44,6 +44,8 @@ export const auth = {
 
   logout() {
     if (hasWindow()) {
+      // Fire and forget; interceptor adds Authorization header if token exists
+      api.post('/auth/logout').catch(() => { /* ignore errors */ });
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/';
