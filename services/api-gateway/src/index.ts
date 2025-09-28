@@ -199,27 +199,40 @@ const services = {
   '/api/users': {
     target: process.env.USER_SERVICE_URL || 'http://user-service:3001',
     changeOrigin: true,
-    logLevel: 'info' as const
+    logLevel: 'info' as const,
+    timeout: 10000, // 10 second timeout
+    proxyTimeout: 10000
   },
   '/api/messages': {
     target: process.env.MESSAGE_SERVICE_URL || 'http://message-service:3002',
     changeOrigin: true,
-    logLevel: 'info' as const
+    logLevel: 'info' as const,
+    timeout: 10000, // 10 second timeout
+    proxyTimeout: 10000,
+    pathRewrite: {
+      '^/api/messages': ''
+    }
   },
   '/api/files': {
     target: process.env.FILE_SERVICE_URL || 'http://file-service:3003',
     changeOrigin: true,
-    logLevel: 'info' as const
+    logLevel: 'info' as const,
+    timeout: 15000, // 15 second timeout for file operations
+    proxyTimeout: 15000
   },
   '/api/notifications': {
     target: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3004',
     changeOrigin: true,
-    logLevel: 'info' as const
+    logLevel: 'info' as const,
+    timeout: 10000,
+    proxyTimeout: 10000
   },
   '/api/presence': {
     target: process.env.PRESENCE_SERVICE_URL || 'http://presence-service:3005',
     changeOrigin: true,
-    logLevel: 'info' as const
+    logLevel: 'info' as const,
+    timeout: 10000,
+    proxyTimeout: 10000
   }
 };
 

@@ -124,7 +124,7 @@ app.get('/metrics', async (_req: Request, res: Response) => {
 });
 
 // API Routes
-app.use('/api/messages', messageRoutes);
+app.use('/', messageRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

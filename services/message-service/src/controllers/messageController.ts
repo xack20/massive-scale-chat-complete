@@ -122,6 +122,8 @@ export const messageController = {
       const currentUserId = req.headers['x-user-id'] as string;
       const currentUserName = req.headers['x-user-name'] as string;
 
+      logger.info('Creating direct conversation', { currentUserId, participantId, currentUserName });
+
       if (!participantId) {
         return res.status(400).json({ error: 'participantId is required' });
       }
@@ -131,18 +133,19 @@ export const messageController = {
       }
 
       // Check if direct conversation already exists between these two users
+      const participantIds = [currentUserId, participantId].sort();
       const existingConversation = await Conversation.findOne({
         type: 'direct',
-        'participants.userId': { $all: [currentUserId, participantId] },
-        'participants': { $size: 2 }
-      });
+        'participants.userId': { $all: participantIds },
+        'participants.2': { $exists: false } // Ensures exactly 2 participants
+      }).lean().maxTimeMS(5000);
 
       if (existingConversation) {
+        logger.info('Found existing conversation', { conversationId: existingConversation._id });
         return res.json(existingConversation);
       }
 
-      // Get participant user info (we'll need to call user service for this)
-      // For now, we'll create with basic info and update later
+      // Create new conversation
       const conversation = await Conversation.create({
         type: 'direct',
         participants: [
@@ -162,11 +165,12 @@ export const messageController = {
           }
         ],
         createdBy: currentUserId,
-        isActive: true
+        isArchived: false
       });
 
+      logger.info('Created new conversation', { conversationId: conversation._id });
       res.status(201).json(conversation);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating direct conversation:', error);
       res.status(500).json({ error: 'Failed to create conversation' });
     }

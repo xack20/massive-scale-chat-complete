@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IConversation extends Document {
   type: 'direct' | 'group' | 'channel';
@@ -126,6 +126,16 @@ ConversationSchema.index({ type: 1 });
 ConversationSchema.index({ isArchived: 1 });
 ConversationSchema.index({ createdAt: -1 });
 ConversationSchema.index({ 'lastMessage.timestamp': -1 });
+
+// Optimized compound index for direct conversation lookups
+ConversationSchema.index({ 
+  type: 1, 
+  'participants.userId': 1,
+  isArchived: 1 
+}, { 
+  name: 'direct_conversation_lookup',
+  background: true 
+});
 
 // Virtual for participant count
 ConversationSchema.virtual('participantCount').get(function() {

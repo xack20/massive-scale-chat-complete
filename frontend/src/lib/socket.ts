@@ -8,7 +8,7 @@ export const initSocket = (token: string) => {
   // Try multiple potential ports for the message service
   const WS_URL = runtimeEnv.NEXT_PUBLIC_MESSAGE_SERVICE_URL || 
                  runtimeEnv.NEXT_PUBLIC_WS_URL || 
-                 'http://localhost:3001';
+                 'http://localhost:3002';
   
   console.log('Connecting socket to:', WS_URL);
   
