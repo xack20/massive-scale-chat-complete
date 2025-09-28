@@ -41,25 +41,25 @@ export default function ChatPage() {
   }, [socket]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden px-4 py-10 md:px-8 lg:px-12">
+    <div className="relative min-h-screen overflow-hidden px-2 py-4 sm:px-4 sm:py-6 md:px-8 lg:px-12 lg:py-10">
       <div
-        className="pointer-events-none absolute inset-0 bg-aurora opacity-50 blur-3xl"
+        className="pointer-events-none absolute inset-0 bg-aurora opacity-30 blur-3xl"
         aria-hidden="true"
       />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col-reverse gap-6 lg:h-[calc(100vh-6rem)] lg:flex-row">
-        <main className="glass-panel flex flex-1 flex-col overflow-hidden border-white/10 bg-slate-950/40">
-          <header className="flex flex-col gap-3 border-b border-white/10 px-6 py-6 sm:flex-row sm:items-center sm:justify-between md:px-8">
-            <div>
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-6 lg:h-[calc(100vh-5rem)] lg:flex-row">
+        <main className="glass-panel flex flex-1 flex-col overflow-hidden border-white/10 bg-slate-950/40 min-h-[60vh] lg:min-h-0">
+          <header className="flex flex-col gap-3 border-b border-white/10 px-4 py-4 sm:px-6 sm:py-6 sm:flex-row sm:items-center sm:justify-between md:px-8">
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/40">Live conversation</p>
-              <h1 className="text-2xl font-semibold text-white">{headline}</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold text-white truncate">{headline}</h1>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 sm:inline">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <span className="hidden rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 md:inline">
                 {messages.length ? `${messages.length} ${messages.length === 1 ? 'message' : 'messages'}` : 'No messages yet'}
               </span>
               <span
-                className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
                   connected
                     ? 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200'
                     : 'border-amber-400/30 bg-amber-500/15 text-amber-200'
@@ -77,17 +77,17 @@ export default function ChatPage() {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6 md:px-8">
+          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 md:px-8">
             <MessageList messages={messages} currentUserId={user?.id} />
           </div>
 
-          <div className="border-t border-white/10 px-6 py-6 md:px-8">
+          <div className="border-t border-white/10 px-4 py-4 sm:px-6 sm:py-6 md:px-8">
             <MessageInput />
           </div>
         </main>
 
-        <aside className="w-full lg:w-80 lg:flex-shrink-0">
-          <UserList className="lg:h-full" />
+        <aside className="w-full lg:w-80 lg:flex-shrink-0 order-first lg:order-last">
+          <UserList className="h-64 sm:h-80 lg:h-full" />
         </aside>
       </div>
     </div>

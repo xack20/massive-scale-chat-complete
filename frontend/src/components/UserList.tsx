@@ -50,19 +50,19 @@ export default function UserList({ className }: UserListProps) {
   return (
     <div
       className={cn(
-        'glass-panel flex h-full flex-col overflow-hidden border-white/10 bg-slate-950/40 p-6 text-white',
+        'glass-panel flex h-full flex-col overflow-hidden border-white/10 bg-slate-950/40 p-4 sm:p-6 text-white',
         className
       )}
     >
-  <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/40">Now chatting</p>
-          <h2 className="text-lg font-semibold text-white">Active roster</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-white truncate">Active roster</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <span
             className={cn(
-              'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold',
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
               onlineCount
                 ? 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200'
                 : 'border-white/10 bg-white/5 text-white/60'
@@ -74,7 +74,8 @@ export default function UserList({ className }: UserListProps) {
                 onlineCount ? 'bg-emerald-400 ring-2 ring-emerald-300/50 ring-offset-1 ring-offset-transparent' : 'bg-white/40'
               )}
             />
-            {onlineCount ? `${onlineCount} online` : 'Invite your team'}
+            <span className="hidden sm:inline">{onlineCount ? `${onlineCount} online` : 'Invite your team'}</span>
+            <span className="sm:hidden">{onlineCount || '0'}</span>
           </span>
           <button
             type="button"
@@ -82,9 +83,10 @@ export default function UserList({ className }: UserListProps) {
             onClick={() => {
               void fetchUsers();
             }}
-            className={cn('secondary-button h-9 px-3 text-xs', loading && 'pointer-events-none opacity-60')}
+            className={cn('secondary-button h-8 px-2.5 text-xs sm:h-9 sm:px-3', loading && 'pointer-events-none opacity-60')}
           >
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
+            <span className="sm:hidden">↻</span>
           </button>
         </div>
       </div>
@@ -95,17 +97,17 @@ export default function UserList({ className }: UserListProps) {
         </div>
       )}
 
-      <div className="mt-6 flex-1 space-y-2 overflow-y-auto pr-2">
+      <div className="mt-4 sm:mt-6 flex-1 space-y-1.5 sm:space-y-2 overflow-y-auto pr-1 sm:pr-2">
         {loading
           ? placeholders.map((_, index) => (
               <div
                 key={`placeholder-${index}`}
-                className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/5 px-3 py-3 opacity-80 animate-pulse"
+                className="flex items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl border border-white/5 bg-white/5 px-2.5 py-2.5 sm:px-3 sm:py-3 opacity-80 animate-pulse"
               >
-                <div className="h-10 w-10 rounded-full bg-white/10" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-24 rounded-full bg-white/10" />
-                  <div className="h-2 w-32 rounded-full bg-white/5" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white/10 flex-shrink-0" />
+                <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
+                  <div className="h-3 w-20 sm:w-24 rounded-full bg-white/10" />
+                  <div className="h-2 w-24 sm:w-32 rounded-full bg-white/5" />
                 </div>
               </div>
             ))
@@ -118,27 +120,27 @@ export default function UserList({ className }: UserListProps) {
                 return (
                   <div
                     key={user.id}
-                    className="group flex items-center gap-3 rounded-2xl border border-transparent bg-white/0 px-3 py-3 transition duration-200 hover:border-white/20 hover:bg-white/5"
+                    className="group flex items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl border border-transparent bg-white/0 px-2.5 py-2.5 sm:px-3 sm:py-3 transition duration-200 hover:border-white/20 hover:bg-white/5"
                   >
-                    <div className="relative">
+                    <div className="relative flex-shrink-0">
                       {user.avatar ? (
                         <Image
                           src={user.avatar}
                           alt={displayName}
-                          width={40}
-                          height={40}
+                          width={32}
+                          height={32}
                           unoptimized
-                          className="h-10 w-10 rounded-full border border-white/15 object-cover"
+                          className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border border-white/15 object-cover"
                         />
                       ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-sm font-semibold text-white/80">
+                        <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-xs sm:text-sm font-semibold text-white/80">
                           {getInitials(displayName)}
                         </div>
                       )}
                       <span
                         className={cn(
-                          'absolute -bottom-1 -right-1 h-3 w-3 rounded-full border border-slate-950/80',
-                          online ? 'bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.45)]' : 'bg-slate-500'
+                          'absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border border-slate-950/80',
+                          online ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.45)]' : 'bg-slate-500'
                         )}
                       />
                     </div>
@@ -147,7 +149,7 @@ export default function UserList({ className }: UserListProps) {
                       <span className="truncate text-xs text-white/60">{presenceLabel}</span>
                     </div>
                     {online && (
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-200/80">Live</span>
+                      <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-200/80 flex-shrink-0">Live</span>
                     )}
                   </div>
                 );
