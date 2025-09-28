@@ -23,8 +23,22 @@ export const authMiddleware = async (
 ) => {
   try {
     // Skip authentication for certain paths
-    const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/health', '/socket.io', '/ws'];
-    if (publicPaths.some(path => req.path.startsWith(path))) {
+    const publicPaths = [
+      '/api/auth/login', 
+      '/api/auth/register', 
+      '/api/users/login', 
+      '/api/users/register',
+      '/api/health', 
+      '/socket.io', 
+      '/ws'
+    ];
+    
+    // Also allow health endpoints for all services
+    const healthEndpoints = ['/health', '/livez', '/readyz', '/metrics'];
+    const isHealthEndpoint = healthEndpoints.some(endpoint => req.path.endsWith(endpoint));
+    const isPublicPath = publicPaths.some(path => req.path.startsWith(path));
+    
+    if (isPublicPath || isHealthEndpoint || req.path.includes('/health')) {
       return next();
     }
 

@@ -119,6 +119,22 @@ app.options('*', cors({
   allowedHeaders: ['Content-Type','Authorization','Accept','X-Requested-With']
 }));
 
+// Socket.IO proxy for real-time chat - MUST be before other middleware
+logger.info('Setting up Socket.IO proxy for /socket.io -> message-service:3002');
+app.use('/socket.io', createProxyMiddleware({
+  target: process.env.MESSAGE_SERVICE_URL || 'http://message-service:3002',
+  ws: true,
+  changeOrigin: true,
+  logLevel: 'info' as const,
+  onProxyReq: (proxyReq, req, res) => {
+    logger.debug(`Proxying Socket.IO request: ${req.method} ${req.url}`);
+  },
+  onError: (err, req, res) => {
+    logger.error(`Socket.IO proxy error: ${err.message}`);
+  }
+}));
+logger.info('Socket.IO proxy registered successfully');
+
 // Lightweight debugging endpoint to introspect CORS behavior during development
 app.get('/cors-debug', (req: Request, res: Response) => {
   res.json({
@@ -178,56 +194,49 @@ app.get('/metrics', async (_req: Request, res: Response) => {
 // API Routes
 app.use('/api', routes);
 
-// Service proxy configuration
+// Service proxy configuration - preserve full API paths for services
 const services = {
   '/api/users': {
     target: process.env.USER_SERVICE_URL || 'http://user-service:3001',
     changeOrigin: true,
-    pathRewrite: { '^/api/users': '' }
+    logLevel: 'info' as const
   },
   '/api/messages': {
     target: process.env.MESSAGE_SERVICE_URL || 'http://message-service:3002',
     changeOrigin: true,
-    pathRewrite: { '^/api/messages': '' }
+    logLevel: 'info' as const
   },
   '/api/files': {
     target: process.env.FILE_SERVICE_URL || 'http://file-service:3003',
     changeOrigin: true,
-    pathRewrite: { '^/api/files': '' }
+    logLevel: 'info' as const
   },
   '/api/notifications': {
     target: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3004',
     changeOrigin: true,
-    pathRewrite: { '^/api/notifications': '' }
+    logLevel: 'info' as const
   },
   '/api/presence': {
     target: process.env.PRESENCE_SERVICE_URL || 'http://presence-service:3005',
     changeOrigin: true,
-    pathRewrite: { '^/api/presence': '' }
+    logLevel: 'info' as const
   }
 };
+
+// WebSocket proxy for presence features
+logger.info('Setting up WebSocket proxy for /ws -> presence-service:3005');
+app.use('/ws', createProxyMiddleware({
+  target: process.env.PRESENCE_SERVICE_URL || 'http://presence-service:3005',
+  ws: true,
+  changeOrigin: true,
+  logLevel: 'info' as const
+}));
+logger.info('WebSocket proxy registered successfully');
 
 // Set up proxies for each service
 Object.entries(services).forEach(([path, config]) => {
   app.use(path, authMiddleware, createProxyMiddleware(config));
 });
-
-// WebSocket proxy for real-time features
-app.use('/ws', createProxyMiddleware({
-  target: process.env.PRESENCE_SERVICE_URL || 'http://presence-service:3005',
-  ws: true,
-  changeOrigin: true
-}));
-
-// Socket.IO proxy for chat features (no auth middleware for WebSocket handshake)
-app.use('/socket.io', createProxyMiddleware({
-  target: process.env.MESSAGE_SERVICE_URL || 'http://message-service:3002',
-  ws: true,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/socket.io': '/socket.io'
-  }
-}));
 
 // Error handling middleware
 app.use(errorHandler);

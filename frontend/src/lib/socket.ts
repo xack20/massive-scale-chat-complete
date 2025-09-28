@@ -4,11 +4,12 @@ let socket: Socket | null = null;
 
 export const initSocket = (token: string) => {
   const runtimeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
-  const WS_URL = runtimeEnv.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000/ws';
+  // Temporarily connect directly to message service instead of through API Gateway
+  const WS_URL = runtimeEnv.NEXT_PUBLIC_MESSAGE_SERVICE_URL || 'http://localhost:3002';
   
   socket = io(WS_URL, {
     auth: { token },
-    transports: ['websocket']
+    transports: ['websocket', 'polling']
   });
 
   socket.on('connect', () => {
